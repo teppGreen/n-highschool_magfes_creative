@@ -89,18 +89,6 @@ function receptionRequest(formRow) {
   
   workInfo.workId = workSheet.getRange(workSheetRow, workIdCol).getValue();
 
-  //依頼者SlackIDの特定
-  const contactSheetId = getValueRanges('contactSheet.id',paramSheet)[0].offset(0,1).getValue();
-  const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName('persons');
-  const emailCol = getColByHeaderName(contactSheet,'E-mail 1 - Value');
-  const slackIdCol = getColByHeaderName(contactSheet,'Slack ID');
-  const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
-  const contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
-
-  if (contactSheetRow > 0) {
-    workInfo.client.slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
-  }
-
   //制作フォルダ・制作シートの作成
   const newFolder = createNewFolder(paramSheet, workInfo);
   workInfo.url.workFolder = newFolder.workFolder.getUrl();
@@ -194,6 +182,7 @@ function writeResponseToSheet_work(workInfo,requestInfo){
 }
 
 function sendNotificationToSlack(workInfo,requestInfo) {
+  const paramSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('parameters');
   const token = PropertiesService.getScriptProperties().getProperty("slackWorkflow_notifyRequest_WebReqestUrl");
   //const token = PropertiesService.getScriptProperties().getProperty("slackWorkflow_test_WebReqestUrl");
 
@@ -220,6 +209,35 @@ function sendNotificationToSlack(workInfo,requestInfo) {
 
     note = requestInfo.note;
   }
+
+  //依頼者SlackIDの特定
+  const contactSheetId = getValueRanges('contactSheet.id',paramSheet)[0].offset(0,1).getValue();
+  const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName('persons');
+  const emailCol = getColByHeaderName(contactSheet,'E-mail 1 - Value');
+  const slackIdCol = getColByHeaderName(contactSheet,'Slack ID');
+  const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
+  let contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
+  let slackId;
+
+  if (contactSheetRow > 0) {
+    slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
+  } else {
+    const registrationFormId = getValueRanges('registrationForm.id',paramSheet)[0].offset(0,1).getValue();
+    const registrationFormUrl = `https://docs.google.com/forms/d/e/${registrationFormId}/viewform`;
+    contactSheetRow = emailList.indexOf(slackAdminEmail) + 1;
+
+    if (contactSheetRow > 0) {
+      slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
+    }
+
+    // 備考に基本情報収集フォームが送られていないことを書き足す
+    if (note.length === 0) {
+      note += '\n\n';
+    }
+
+    note += `依頼者(${workInfo.client.email})から基本情報収集フォームが提出されていなかったため、システム管理者をメンションしました。` + 
+      `基本情報収集フォーム: ${registrationFormUrl}`;
+  }
   
   const datetime_expected = workInfo.datetime.expected ? Utilities.formatDate(workInfo.datetime.expected, 'JST', 'yyyy/MM/dd(E) HH:mm') : '依頼時点では未指定';
 
@@ -235,7 +253,7 @@ function sendNotificationToSlack(workInfo,requestInfo) {
       "note": note,
       "datetime_expected": datetime_expected,
       "projTitle": workInfo.projTitle,
-      "client_slackId": workInfo.client.slackId,
+      "client_slackId": slackId,
       "url_workFolder": workInfo.url.workFolder,
       "workTitle": workInfo.workTitle,
       "projId": workInfo.projId
