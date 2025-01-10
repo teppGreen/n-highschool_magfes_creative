@@ -199,12 +199,16 @@ function sendNotificationToSlack(workInfo,requestInfo) {
       if (command === 'dontSendNotification') return;
     }
 
-    if (requestInfo.hearingDatetime[0]) {
+    if (requestInfo.hearingDatetime[0] !== '') {
       datetime_hearing = [];
-      for (let i = 0; i < requestInfo.hearingDatetime.length; i++) {
-        datetime_hearing.push(Utilities.formatDate(requestInfo.hearingDatetime[i], 'JST', 'MM/dd(E) HH:mm'));
+      for (let i = 0; i < 3; i++) {
+        if (requestInfo.hearingDatetime[i] !== '') {
+          datetime_hearing.push(Utilities.formatDate(requestInfo.hearingDatetime[i], 'JST', 'MM/dd(E) HH:mm'));
+        } else {
+          datetime_hearing.push('-');
+        }
       }
-      datetime_hearing = `＜初回ヒアリング実施日時＞ 出席可能な候補をスタンプで教えてください。\n:one: ${datetime_hearing[0]}\n:two:${datetime_hearing[1]}\n:three:${datetime_hearing[2]}`;
+     datetime_hearing = `＜初回ヒアリング実施日時＞ 出席可能な候補をスタンプで教えてください。\n:one: ${datetime_hearing[0]}\n:two:${datetime_hearing[1]}\n:three:${datetime_hearing[2]}`; 
     }
 
     note = requestInfo.note;
