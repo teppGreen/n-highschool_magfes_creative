@@ -211,6 +211,7 @@ function sendNotificationToSlack(workInfo,requestInfo) {
   }
 
   //依頼者SlackIDの特定
+  const slackAdminEmail = PropertiesService.getScriptProperties().getProperty('slackAdminEmail');
   const contactSheetId = getValueRanges('contactSheet.id',paramSheet)[0].offset(0,1).getValue();
   const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName('persons');
   const emailCol = getColByHeaderName(contactSheet,'E-mail 1 - Value');
