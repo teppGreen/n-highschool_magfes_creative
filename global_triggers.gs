@@ -79,8 +79,8 @@ function onEditFunctions_workSheet(e) {
     console.log(`▼${arguments.callee.name}`);
     console.log('User: ' + e.user.getEmail() + '\nRange: ' + e.source.getActiveSheet().getName() + '!' + e.range.getA1Notation());
 
-    inputLastModifiedDate(e);
     syncSheet_workToResource(e);
+    inputLastModifiedDate(e);
   } catch(error) {
     notifyError(error);
     throw new Error(error.stack);

@@ -15,14 +15,14 @@ function syncSheet_resourceToWork_temp() {
 }
 
 function syncSheet_resourceToWork(sheet,row){
-  if (sheet.getName() !== 'works') return;
+  if (sheet.getName() !== 'works' || row < 2) return;
 
   const outputRange = getRangesByHeaderNames(sheet, row, headerNames_work);
   const workInfo = getValuesByRanges(outputRange);
   console.log(workInfo);
 
   const workSheetUrl = workInfo.url.workSheet;
-  if (!workSheetUrl) {
+  if (!workSheetUrl || workSheetUrl == '') {
     console.error('[syncSheet_resourceToWork] workSheetUrl was not found.');
     return;
   }
@@ -79,24 +79,31 @@ function syncSheet_resourceToWork(sheet,row){
 
 function syncSheet_resourceToWork_status(e) {
   const sheet = e.source.getActiveSheet();
-  if (sheet.getName() !== 'works') return;
+  if (sheet.getName() !== 'works' || !e.value) return;
 
   const editedRow = e.range.getRow();
   const editedCol = e.range.getColumn();
   if (sheet.getRange(1,editedCol).getValue() !== 'ステータス') return;
-
-  SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "ステータスを変更中");
   
   const workSheet_url = sheet.getRange(editedRow,getColByHeaderName(sheet,'制作シート')).getValue();
   const workSheet = SpreadsheetApp.openByUrl(workSheet_url);
   const workSheet_tasks = workSheet.getSheetByName('tasks');
 
-  let datetimeKey, inputValue;
-  if (e.value === '納品' || e.value === '依頼取消') {
-    datetimeKey = '納品日時';
+  console.log(`現在のe.valueは${e.value}です`)
+
+  let newStatus, datetimeKey, inputValue;
+  if (e.value == '依頼取消') {
+    newStatus = '納品';
+  } else {
+    newStatus = e.value;
+  }
+  console.log(`現在のe.valueは${e.value}、newStatusは${newStatus}です`)
+  if (newStatus === '納品') { 
+    console.log(`ステータス：納品時動作`)
+    datetimeKey = newStatus + '日時';
     inputValue = '完了';
   } else {
-    datetimeKey = e.value + '開始日時'
+    datetimeKey = newStatus + '開始日時'
     inputValue = '実行中'
   }
 
@@ -107,9 +114,10 @@ function syncSheet_resourceToWork_status(e) {
   if (!datetime) {
     datetimeRange.setValue(now);
     syncSheet_resourceToWork(sheet,editedRow);
-    getValueRanges(e.value,workSheet_tasks)[0].offset(0,-1).setValue(inputValue);
-    getValueRanges(e.oldValue,workSheet_tasks)[0].offset(0,-1).setValue('完了');
+    getValueRanges(newStatus,workSheet_tasks)[0].offset(0,-1).setValue(inputValue);
+    
+    if (e.oldValue !== '依頼取消') {
+      getValueRanges(e.oldValue,workSheet_tasks)[0].offset(0,-1).setValue('完了');
+    }
   }
-
-  SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `${editedRow}行目の同期が完了しました`);
 }

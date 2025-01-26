@@ -1,3 +1,9 @@
+// function onEdit(e) {
+//   console.log(e.value);
+//   e.value = 'テスト';
+//   console.log(e.value);
+// }
+
 function test1() {
     let num = 500
     let str = String(num).padStart(3,'0');
@@ -90,4 +96,19 @@ function test12() {
   for (i = 0; i < requestInfo.hearingDatetime.length; i++) {
     console.log('Hi');
   }
+}
+
+function test13() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('form');
+  const values = [sheet.getRange('O2').getValue(),sheet.getRange('O3').getValue(),sheet.getRange('O4').getValue()]
+  console.log(values.length)
+
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] !== '') {
+      const date = Utilities.formatDate(values[i], 'JST', 'MM/dd(E) HH:mm');
+      console.log(date);
+    }
+  }
+
+  console.log(values[4]);
 }
