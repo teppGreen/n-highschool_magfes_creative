@@ -94,9 +94,9 @@ function notifyError(error) {
   const scriptUrl = 'https://script.google.com/home/projects/' + ScriptApp.getScriptId() + '/executions';
 
   const to = PropertiesService.getScriptProperties().getProperty('systemManagerEmails');
-  const subject = `【${datetime}】【障害】クリエイティブ班 業務システムでエラー発生｜磁石祭実行委員会(2025)`;
+  const subject = `【${datetime}】【障害】磁実クリエイティブ班 業務システムでエラー発生`;
   const body = 
-    '磁石祭実行委員会(2025) クリエイティブ班 業務システムでエラーが発生しました。対応が必要な可能性がありますので、以下の内容を確認してください。' + 
+    '磁石祭実行委員会 クリエイティブ班 業務システムでエラーが発生しました。対応が必要な可能性がありますので、以下の内容を確認してください。' + 
     '\n\nエラー発生日時: ' + Utilities.formatDate(now, 'JST', 'yyyy/MM/dd(E) HH:mm') + 
     '\n' + error.stack + 
     '\n\nリソース管理シート: ' + sheetUrl + 
