@@ -41,8 +41,8 @@ function syncSheet_resourceToWork(sheet,row){
   getValueRanges('依頼者メアド', workSheet_main)[0].offset(0,2).setValue(workInfo.client.email);
 
   getValueRanges('制作アプリ', workSheet_main)[0].offset(0,1).setValue(workInfo.review.usedApp);
-  getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.datetime.deliverablesCount);
-  getValueRanges('来年も作るべきか', workSheet_main)[0].offset(0,1).setValue(workInfo.datetime.willMakeNextYear);
+  getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
+  getValueRanges('来年も作るべきか', workSheet_main)[0].offset(0,1).setValue(workInfo.review.willMakeNextYear);
 
   const urlLabels = ['制作フォルダ','納品フォルダ','Canva フォルダ','Slack チャンネル','Slack スレッド'];
   for (let key in workInfo.url) {
