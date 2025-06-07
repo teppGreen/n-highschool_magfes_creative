@@ -25,7 +25,6 @@ function sendNotificationToSlack_fromResourceSheet() {
     }
 
     sendNotificationToSlack(workInfo);
-
     SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `${row}行目をSlack ワークフローに送信しました`);
   } else {
     ss.toast('処理を中断しました')
@@ -101,7 +100,6 @@ function receptionRequest(formRow) {
     writeResponseToSheet_work(workInfo,requestInfo);
     syncSheet_resourceToWork(workSheet,workSheetRow);
   } catch(error) {
-    notifyError(error);
     console.error('Continue error: ' + error.stack);
   }
 
@@ -109,9 +107,8 @@ function receptionRequest(formRow) {
     sendNotificationToSlack(workInfo,requestInfo);
   } catch(error) {
     notifyError(error);
-    console.error('Continue error: ' + error.stack);
   }
-
+  
   processSystemCommand(requestInfo);
 }
 
@@ -189,8 +186,10 @@ function writeResponseToSheet_work(workInfo,requestInfo){
     }
 
   const workSheet_tasks = workSheet.getSheetByName('tasks');
+  const statusCol = getColByHeaderName(workSheet_tasks, 'ステータス');
     if (requestInfo.hearingType.includes('不要')) {
-      getValueRanges('初回ヒアリング',workSheet_tasks)[0].offset(0,-1).clearContent();
+      const targetStatusRow = getValueRanges('初回ヒアリング',workSheet_tasks)[0].getRow();
+      workSheet_tasks.getRange(targetStatusRow, statusCol).clearContent();
     }
 }
 
