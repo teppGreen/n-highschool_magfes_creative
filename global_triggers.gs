@@ -54,8 +54,8 @@ function onEditFunctions(e) {
     
     integrityProjIdAndTitle(e);
     inputStatusChangedDatetime_resource(e);
-    syncSheet_resourceToWork(e.source.getActiveSheet(), e.range.getRow());
     syncSheet_resourceToWork_status(e);
+    syncSheet_resourceToWork(e.source.getActiveSheet(), e.range.getRow());
     inputAttendanceDate(e);
     openOrCloseFormResponse(e);
   } catch(error) {
