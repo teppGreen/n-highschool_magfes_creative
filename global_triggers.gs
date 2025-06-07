@@ -53,8 +53,8 @@ function onEditFunctions(e) {
     console.log('User: ' + e.user.getEmail());
     
     integrityProjIdAndTitle(e);
-    inputStatusChangedDatetime_resource(e);
     syncSheet_resourceToWork_status(e);
+    inputStatusChangedDatetime_resource(e);
     syncSheet_resourceToWork(e.source.getActiveSheet(), e.range.getRow());
     inputAttendanceDate(e);
     openOrCloseFormResponse(e);
