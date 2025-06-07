@@ -113,7 +113,7 @@ function receptionRequest(formRow) {
 }
 
 function createNewFolder(paramSheet, workInfo) {
-  const folderName = workInfo.projId + String(workInfo.workId).padStart(3,'0') + '_' + workInfo.projTitle + '_' + workInfo.workTitle;
+  const folderName = `${workInfo.workId}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFolderId = getValueRanges('workInfo.url.workFolder', paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
