@@ -102,7 +102,7 @@ function syncSheet_resourceToWork_status(e) {
     workSheet_tasks.getRange(newStatusRow, statusCol).setValue('実行中');
   }
 
-  if (e.oldValue !== '依頼取消') {
+  if (e.oldValue !== '納品済' || e.oldValue !== '依頼取消') {
     const oldStatusRow = getValueRanges(e.oldValue, workSheet_tasks)[0].getRow();
     workSheet_tasks.getRange(oldStatusRow, statusCol).setValue('完了');
     workSheet_tasks.getRange(oldStatusRow, endDatetimeCol).setValue(now);
