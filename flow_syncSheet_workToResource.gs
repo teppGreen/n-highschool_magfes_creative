@@ -5,6 +5,10 @@ function syncSheet_workToResource(e) {
   const workSheet_main = workSheet.getSheetByName('main');
   const workSheet_active = e.source.getActiveSheet();
 
+  const editedRow = e.range.getRow();
+  const editedCol = e.range.getColumn();
+  const editedHeader = workSheet_active.getRange(1, editedCol).getValue();
+
   const workId = getValueRanges('管理番号',workSheet_main)[0].offset(0,3).getValue();
   const workIds = resourceSheet.getRange(1,getColByHeaderName(resourceSheet,'制作番号'),resourceSheet.getLastRow(),1).getValues().flat();
   const workSheetRow = workIds.indexOf(workId) + 1;
@@ -18,7 +22,6 @@ function syncSheet_workToResource(e) {
   if (workSheetRow === 0) return;
   
   if (workSheet_active.getName() === 'main') {
-
     if (targetCreteriaType === SpreadsheetApp.DataValidationCriteria.CHECKBOX) {
       const nickname = e.range.offset(0,1).getValue();
       const membersCol = getColByHeaderName(resourceSheet,'担当者');
@@ -66,44 +69,30 @@ function syncSheet_workToResource(e) {
 
   if (workSheet_active.getName() === 'tasks') {
     const statusList = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
-    const headerName = workSheet_active.getRange(1,e.range.getColumn()).getValue();
-    const titleRange = workSheet_active.getRange(e.range.getRow(),getColByHeaderName(workSheet_active,'タイトル'));
-    const title = titleRange.getValue();
-    const datetimeRange_work = workSheet_active.getRange(e.range.getRow(),getColByHeaderName(workSheet_active,'開始日時'));
-    const datetime = datetimeRange_work.getValue();
-    let datetimeKey;
-    const now = new Date();
-
-    if (statusList.includes(title) && e.value === '実行中') {
-      const inputCol = getColByHeaderName(resourceSheet,'ステータス');
-      resourceSheet.getRange(workSheetRow,inputCol).setValue(title);
-    }
+    const editedTitleRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'タイトル'));
+    const editedTitle = editedTitleRange.getValue();
     
-    if (statusList.includes(title) && e.value === '実行中' && datetime === '') {
-      datetimeRange_work.setValue(now);
-
-      if (title === '納品') {
-        datetimeKey = '納品日時';
-      } else {
-        datetimeKey = title + '開始日時';
+    const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時'));
+    const startDatetime = startDatetimeRange.getValue();
+    const endDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'終了日時'));
+    const endDatetime = endDatetimeRange.getValue();
+    
+    if (statusList.includes(editedTitle)) {
+      // ステータス変更を処理
+      if (editedHeader === 'ステータス') {
+        if ((e.value === '実行中') || (editedTitle === '納品' && e.value === '完了')) {
+          const resourceSheetStatusCol = getColByHeaderName(resourceSheet,'ステータス');
+          resourceSheet.getRange(workSheetRow, resourceSheetStatusCol).setValue(editedTitle);
+        }
       }
-    }
 
-    if (title === '納品' && e.value === '完了' && datetime === '') {
-      datetimeRange_work.setValue(now);
-      datetimeKey = '納品日時';
-    }
-
-    if (title === '納品' && headerName === '終了期限日時') {
-      datetimeKey = '納品期限日時';
-    }
-
-    console.log(resourceSheet);
-    console.log(datetimeKey);
-    console.log(getColByHeaderName(resourceSheet,datetimeKey));
-
-    if (datetimeKey) {
-      resourceSheet.getRange(workSheetRow,getColByHeaderName(resourceSheet,datetimeKey)).setValue(now);
+      // 日時変更を処理
+      if (editedTitle === '納品') {
+        resourceSheet.getRange(workSheetRow, getColByHeaderName(resourceSheet, `${editedTitle}日時`)).setValue(startDatetime);
+        resourceSheet.getRange(workSheetRow, getColByHeaderName(resourceSheet, `${editedTitle}期限日時`)).setValue(endDatetime);
+      } else {
+        resourceSheet.getRange(workSheetRow, getColByHeaderName(resourceSheet, `${editedTitle}開始日時`)).setValue(startDatetime);
+      }
     }
   }
 }

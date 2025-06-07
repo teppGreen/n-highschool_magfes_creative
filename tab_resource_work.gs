@@ -56,3 +56,34 @@ function changeFileName(workInfo) {
     DriveApp.getFileById(fileId).setName(fileName);
   }
 }
+
+function inputStatusChangedDatetime_resource(e) {
+  const sheet = e.source.getActiveSheet();
+  if (sheet.getName() !== 'works' || !e.value) return;
+
+  const editedRow = e.range.getRow();
+  const editedCol = e.range.getColumn();
+  if (sheet.getRange(1,editedCol).getValue() !== 'ステータス') return;
+  
+  let newStatus, datetimeKey, inputValue;
+  if (e.value == '依頼取消') {
+    newStatus = '納品';
+  } else {
+    newStatus = e.value;
+  }
+  
+  if (newStatus === '納品') { 
+    datetimeKey = newStatus + '日時';
+  } else {
+    datetimeKey = newStatus + '開始日時'
+    inputValue = '実行中'
+  }
+
+  const datetimeRange = sheet.getRange(editedRow,getColByHeaderName(sheet,datetimeKey));
+  const datetime = datetimeRange.getValue();
+  const now = new Date();
+
+  if (!datetime) {
+    datetimeRange.setValue(now);
+  }
+}

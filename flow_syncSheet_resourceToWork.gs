@@ -91,36 +91,20 @@ function syncSheet_resourceToWork_status(e) {
   const workSheet_url = sheet.getRange(editedRow,getColByHeaderName(sheet,'制作シート')).getValue();
   const workSheet = SpreadsheetApp.openByUrl(workSheet_url);
   const workSheet_tasks = workSheet.getSheetByName('tasks');
-
-  console.log(`現在のe.valueは${e.value}です`)
-
-  let newStatus, datetimeKey, inputValue;
-  if (e.value == '依頼取消') {
-    newStatus = '納品';
-  } else {
-    newStatus = e.value;
-  }
-  console.log(`現在のe.valueは${e.value}、newStatusは${newStatus}です`)
-  if (newStatus === '納品') { 
-    console.log(`ステータス：納品時動作`)
-    datetimeKey = newStatus + '日時';
-    inputValue = '完了';
-  } else {
-    datetimeKey = newStatus + '開始日時'
-    inputValue = '実行中'
-  }
-
-  const datetimeRange = sheet.getRange(editedRow,getColByHeaderName(sheet,datetimeKey));
-  const datetime = datetimeRange.getValue();
+  const newStatusRow = getValueRanges(e.value, workSheet_tasks)[0].getRow();
+  const statusCol = getColByHeaderName(workSheet_tasks, 'ステータス');
+  const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時');
   const now = new Date();
+  
+  if (e.value === '納品' || e.value === '依頼取消') { 
+    workSheet_tasks.getRange(newStatusRow, statusCol).setValue('完了');
+  } else {
+    workSheet_tasks.getRange(newStatusRow, statusCol).setValue('実行中');
+  }
 
-  if (!datetime) {
-    datetimeRange.setValue(now);
-    syncSheet_resourceToWork(sheet,editedRow);
-    getValueRanges(newStatus,workSheet_tasks)[0].offset(0,-1).setValue(inputValue);
-    
-    if (e.oldValue !== '依頼取消') {
-      getValueRanges(e.oldValue,workSheet_tasks)[0].offset(0,-1).setValue('完了');
-    }
+  if (e.oldValue !== '依頼取消') {
+    const oldStatusRow = getValueRanges(e.oldValue, workSheet_tasks)[0].getRow();
+    workSheet_tasks.getRange(oldStatusRow, statusCol).setValue('完了');
+    workSheet_tasks.getRange(oldStatusRow, endDatetimeCol).setValue(now);
   }
 }

@@ -53,6 +53,7 @@ function onEditFunctions(e) {
     console.log('User: ' + e.user.getEmail());
     
     integrityProjIdAndTitle(e);
+    inputStatusChangedDatetime_resource(e);
     syncSheet_resourceToWork(e.source.getActiveSheet(), e.range.getRow());
     syncSheet_resourceToWork_status(e);
     inputAttendanceDate(e);
@@ -77,8 +78,9 @@ function onOpenFunctions_workSheet(e) {
 function onEditFunctions_workSheet(e) {
   try {
     console.log(`▼${arguments.callee.name}`);
-    console.log('User: ' + e.user.getEmail() + '\nRange: ' + e.source.getActiveSheet().getName() + '!' + e.range.getA1Notation());
+    console.log(`User: ${e.user.getEmail()} \nRange: ${e.source.getActiveSheet().getName()}!${e.range.getA1Notation()} \ne.value: ${e.value}`);
 
+    inputStatusChangedDatetime_work(e);
     syncSheet_workToResource(e);
     inputLastModifiedDate(e);
   } catch(error) {
@@ -101,11 +103,8 @@ function notifyError(error) {
     '\n' + error.stack + 
     '\n\nリソース管理シート: ' + sheetUrl + 
     '\nAppsScript: ' + scriptUrl
-  const options = { name: 'リソース管理シート GASトリガー' };
 
-  if (to) {
-    GmailApp.sendEmail(to,subject,body,options);
-  } else {
-    console.error('スクリプトプロパティにシステム管理者のメールアドレスが設定されていなかったため、エラーメールを送信できませんでした。')
-  }
+  const options = { name: 'リソース管理シート GASトリガー' };
+  GmailApp.sendEmail(to,subject,body,options);
+  
 }
