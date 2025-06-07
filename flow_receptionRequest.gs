@@ -163,12 +163,18 @@ function writeResponseToSheet_work(workInfo,requestInfo){
   const chameleons = resourceSheet.getRange('members!E3:E30').getValues();
   
   const workSheet_main = workSheet.getSheetByName('main');
+    const resourceSheetId = PropertiesService.getScriptProperties().getProperty('sheetId_resource');
+    const resourceSheetUrl = `https://docs.google.com/spreadsheets/d/${resourceSheetId}/edit`;
+    const resourceSheetLink = SpreadsheetApp.newRichTextValue().setText('リソース管理シート').setLinkUrl(workInfo['url'][key]).build();
+    getValueRanges('リソース管理シート', workSheet_main)[0].setRichTextValue(resourceSheetLink);
+  
     getValueRanges('内容',workSheet_main)[0].offset(1,0).setValue(requestInfo.content);
     getValueRanges('デザイン要項',workSheet_main)[0].offset(1,0).setValue(requestInfo.design);
     getValueRanges('入稿規定',workSheet_main)[0].offset(1,0).setValue(requestInfo.regulation);
     getValueRanges('依頼備考',workSheet_main)[0].offset(1,0).setValue(requestInfo.note);
     getValueRanges('ヒアリング',workSheet_main)[0].offset(0,1).setValue(requestInfo.hearingType);
     getValueRanges('参考物',workSheet_main)[0].offset(1,0).setValue(requestInfo.reference);
+    
     workSheet_main.getRange('C14:C41').setValues(chameleons);
     
     if(workInfo.url.footageFolder) {

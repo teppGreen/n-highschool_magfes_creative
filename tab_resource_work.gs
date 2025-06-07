@@ -44,17 +44,15 @@ const headerNames_work = { //リソース管理シート workタブの各列の�
 }
 
 function changeFileName(workInfo) {
-  let fileName,fileId
+  const fileName = `${workInfo.projId}${String(workInfo.workId).padStart(3,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
 
   if (workInfo.url.workSheet) {
-    fileName = `【制作管理】${workInfo.projId}${String(workInfo.workId).padStart(3,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
-    fileId = extractFileId(workInfo.url.workSheet);
-    DriveApp.getFileById(fileId).setName(fileName);
+    const fileId = extractFileId(workInfo.url.workSheet);
+    DriveApp.getFileById(fileId).setName('【制作管理】' + fileName);
   }
 
   if (workInfo.url.workFolder) {
-    fileName = `${workInfo.projId}${String(workInfo.workId).padStart(3,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
-    fileId = extractFileId(workInfo.url.workFolder);
+    const fileId = extractFileId(workInfo.url.workFolder);
     DriveApp.getFileById(fileId).setName(fileName);
   }
 }
