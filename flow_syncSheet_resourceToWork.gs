@@ -48,8 +48,11 @@ function syncSheet_resourceToWork(sheet,row){
   for (let key in workInfo.url) {
     const urlIndex = urlLabels.indexOf(headerNames_work['url'][key]);
     if (urlIndex >= 0) {
-      const richtext = SpreadsheetApp.newRichTextValue().setText(urlLabels[urlIndex]).setLinkUrl(workInfo['url'][key]).build();
-      getValueRanges(urlLabels[urlIndex], workSheet_main)[0].setRichTextValue(richtext);
+      const url = workInfo['url'][key];
+      if (url) {
+        const richtext = SpreadsheetApp.newRichTextValue().setText(urlLabels[urlIndex]).setLinkUrl(url).build();
+        getValueRanges(urlLabels[urlIndex], workSheet_main)[0].setRichTextValue(richtext);
+      }
     }
   }
 
