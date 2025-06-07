@@ -165,7 +165,7 @@ function writeResponseToSheet_work(workInfo,requestInfo){
   const workSheet_main = workSheet.getSheetByName('main');
     const resourceSheetId = PropertiesService.getScriptProperties().getProperty('sheetId_resource');
     const resourceSheetUrl = `https://docs.google.com/spreadsheets/d/${resourceSheetId}/edit`;
-    const resourceSheetLink = SpreadsheetApp.newRichTextValue().setText('リソース管理シート').setLinkUrl(workInfo['url'][key]).build();
+    const resourceSheetLink = SpreadsheetApp.newRichTextValue().setText('リソース管理シート').setLinkUrl(resourceSheetUrl).build();
     getValueRanges('リソース管理シート', workSheet_main)[0].setRichTextValue(resourceSheetLink);
   
     getValueRanges('内容',workSheet_main)[0].offset(1,0).setValue(requestInfo.content);
