@@ -2,10 +2,10 @@ function displayRequestForm_normal() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('parameters');
   const key = getValueRanges('requestForm.id',sheet)[0];
   const value = key.offset(0,1).getValue();
-  const url = `https://docs.google.com/forms/d/e/${value}/viewform?`;
-  const title = '制作依頼フォーム';
+  const form = FormApp.openById(value);
+  const url = form.getPublishedUrl();
 
-  displayRequestForm(url,title)
+  displayRequestForm(`${url}?`,'制作依頼フォーム')
 }
 
 function processSystemCommand(requestInfo) {
