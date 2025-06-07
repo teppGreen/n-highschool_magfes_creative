@@ -101,10 +101,17 @@ function receptionRequest(formRow) {
     writeResponseToSheet_work(workInfo,requestInfo);
     syncSheet_resourceToWork(workSheet,workSheetRow);
   } catch(error) {
+    notifyError(error);
     console.error('Continue error: ' + error.stack);
   }
 
-  sendNotificationToSlack(workInfo,requestInfo);
+  try {
+    sendNotificationToSlack(workInfo,requestInfo);
+  } catch(error) {
+    notifyError(error);
+    console.error('Continue error: ' + error.stack);
+  }
+
   processSystemCommand(requestInfo);
 }
 

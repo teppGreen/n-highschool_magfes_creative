@@ -101,8 +101,11 @@ function notifyError(error) {
     '\n' + error.stack + 
     '\n\nリソース管理シート: ' + sheetUrl + 
     '\nAppsScript: ' + scriptUrl
-
   const options = { name: 'リソース管理シート GASトリガー' };
-  GmailApp.sendEmail(to,subject,body,options);
-  
+
+  if (to) {
+    GmailApp.sendEmail(to,subject,body,options);
+  } else {
+    console.error('スクリプトプロパティにシステム管理者のメールアドレスが設定されていなかったため、エラーメールを送信できませんでした。')
+  }
 }
