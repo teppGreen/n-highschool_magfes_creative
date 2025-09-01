@@ -111,6 +111,21 @@ function deleteDrawings() {
   }
 }
 
+function getRowBySingleCol(sheet, col, targetText) {
+  const lastRow = sheet.getLastRow();
+  const rangeValues = sheet.getRange(1,col,lastRow,1).getValues().flat();
+
+  let row;
+  for (let i = 0; rangeValues.length; i++) {
+    if (rangeValues[i] === targetText) {
+      row = i + 1;
+      return row;
+    }
+  }
+
+  return null;
+}
+
 function displayRequestForm(url,title) {
   const html = `<iframe src="${url}&embedded=true" width="640" height="5000" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>`;
   

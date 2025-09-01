@@ -40,7 +40,7 @@ function syncSheet_resourceToWork(sheet,row){
   getValueRanges('依頼者', workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);
   getValueRanges('依頼者メアド', workSheet_main)[0].offset(0,2).setValue(workInfo.client.email);
 
-  getValueRanges('制作アプリ', workSheet_main)[0].offset(0,2).setValue(workInfo.review.usedApp);
+  getValueRanges('制作アプリ', workSheet_main)[0].offset(0,1).setValue(workInfo.review.usedApp);
   getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
   getValueRanges('来年も作るべきか', workSheet_main)[0].offset(0,1).setValue(workInfo.review.willMakeNextYear);
 
@@ -93,7 +93,7 @@ function syncSheet_resourceToWork_status(e) {
   const workSheet_tasks = workSheet.getSheetByName('tasks');
   const newStatusRow = getValueRanges(e.value, workSheet_tasks)[0].getRow();
   const statusCol = getColByHeaderName(workSheet_tasks, 'ステータス');
-  const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時');
+  const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時（予）');
   const now = new Date();
   
   if (e.value === '納品' || e.value === '依頼取消') { 

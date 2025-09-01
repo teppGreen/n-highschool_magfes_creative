@@ -9,9 +9,9 @@ function inputStatusChangedDatetime_work(e) {
   const statusList = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
   const editedTitleRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'タイトル'));
   const editedTitle = editedTitleRange.getValue();
-  const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時'));
+  const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時（実）'));
   const startDatetime = startDatetimeRange.getValue();
-  const endDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'終了日時'));
+  const endDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'終了日時（予）'));
   const endDatetime = endDatetimeRange.getValue();
   const now = new Date();
   
