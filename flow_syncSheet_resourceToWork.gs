@@ -93,7 +93,7 @@ function syncSheet_resourceToWork_status(e) {
   const workSheet_tasks = workSheet.getSheetByName('tasks');
   const newStatusRow = getValueRanges(e.value, workSheet_tasks)[0].getRow();
   const statusCol = getColByHeaderName(workSheet_tasks, 'ステータス');
-  const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時（予）');
+  const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時');
   const now = new Date();
   
   if (e.value === '納品' || e.value === '依頼取消') { 

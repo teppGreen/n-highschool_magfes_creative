@@ -72,9 +72,9 @@ function syncSheet_workToResource(e) {
     const editedTitleRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'タイトル'));
     const editedTitle = editedTitleRange.getValue();
     
-    const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時（実）'));
+    const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時'));
     const startDatetime = startDatetimeRange.getValue();
-    const endDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'終了日時（予）'));
+    const endDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'終了日時'));
     const endDatetime = endDatetimeRange.getValue();
     
     if (statusList.includes(editedTitle)) {
