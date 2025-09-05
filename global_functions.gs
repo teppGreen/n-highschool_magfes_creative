@@ -1,7 +1,8 @@
 // ローディングアニメーション
 const startProcessingAnimation = HtmlService.createHtmlOutputFromFile('processingAnimation').setWidth(400).setHeight(300);
 const stopProcessingAnimation = HtmlService.createHtmlOutput('<script>google.script.host.close()</script>');
-// SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中"); で呼び出して使用します。
+// SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中"); 
+// SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理完了")
 
 function getValueRanges(targetValue, searchRange) {
   try{
@@ -104,19 +105,12 @@ function getColByHeaderName(sheet, headerName) {
   return column;
 }
 
-function deleteDrawings() {
-  const drawings = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getDrawings();
-  for (let drawing of drawings) {
-    if (drawing.getOnAction() === 'deleteDrawings') drawing.remove();
-  }
-}
-
-function getRowBySingleCol(sheet, col, targetText) {
+function getRowBySingleCol(sheet, colIndex, targetText) {
   const lastRow = sheet.getLastRow();
-  const rangeValues = sheet.getRange(1,col,lastRow,1).getValues().flat();
+  const rangeValues = sheet.getRange(1,colIndex,lastRow,1).getValues().flat();
 
   let row;
-  for (let i = 0; rangeValues.length; i++) {
+  for (let i = 0; i < rangeValues.length; i++) {
     if (rangeValues[i] === targetText) {
       row = i + 1;
       return row;
@@ -124,6 +118,13 @@ function getRowBySingleCol(sheet, col, targetText) {
   }
 
   return null;
+}
+
+function deleteDrawings() {
+  const drawings = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getDrawings();
+  for (let drawing of drawings) {
+    if (drawing.getOnAction() === 'deleteDrawings') drawing.remove();
+  }
 }
 
 function displayRequestForm(url,title) {

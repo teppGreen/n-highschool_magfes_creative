@@ -87,3 +87,143 @@ function inputStatusChangedDatetime_resource(e) {
     datetimeRange.setValue(now);
   }
 }
+
+function filterJoinedMembers() {
+  SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中")
+
+  // 1. アクティブなスプレッドシートとシートを取得
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet_active = ss.getActiveSheet();
+  const ssId = ss.getId();
+  const sheetId = sheet_active.getSheetId();
+  const ui = SpreadsheetApp.getUi();
+
+  if (sheet_active.getName() !== 'projects' && sheet_active.getName() !== 'works') return;
+
+  // フィルタービューの名前を作成
+  const sheet_members = ss.getSheetByName('members');
+  const user_email = Session.getActiveUser().getEmail();
+
+  console.log(`user_email: ${user_email}`);
+
+  const membersNameColIndex = 5;
+  const membersEmailColIndex = 8;
+  const memberRow = getRowBySingleCol(sheet_members, membersEmailColIndex, user_email);
+
+  if (!memberRow) {
+    ui.alert('フィルタービューを作成できません','membersタブに名前とメールアドレスを正しく登録してください。',ui.ButtonSet.OK);
+    sheet_members.getRange('E2').activateAsCurrentCell();
+    return;
+  }
+
+  const user_name = sheet_members.getRange(memberRow, membersNameColIndex).getValue();
+  const datetime = Utilities.formatDate(new Date(), 'JST', 'yyyy-MM-dd(Z) HH:mm:ss');
+  const filterViewName = `担当者_${user_name}`
+
+  // フィルターする対象の列番号を指定
+  const targetColumnIndex = getColByHeaderName(sheet_active, '担当者');
+  
+  // データ範囲を取得（ヘッダー行を除く）
+  // 最終行が1行以下（データなし）の場合は処理を終了
+  const lastRow = sheet_active.getLastRow();
+  if (lastRow < 2) {
+    SpreadsheetApp.getUi().alert('フィルター対象のデータがありません。');
+    return;
+  }
+  
+  const dataRange = sheet_active.getRange(2, targetColumnIndex, lastRow - 1, 1);
+  
+  // --- ここからSpreadsheet APIを使用した処理 ---
+
+  // 既存の同名フィルタービューがあれば削除するためのリクエストを作成
+  const requests = [];
+  const sheetInfo = Sheets.Spreadsheets.get(ssId);
+  const targetSheetInfo = sheetInfo.sheets.find(s => s.properties.sheetId === sheetId);
+
+  if (targetSheetInfo && targetSheetInfo.filterViews) {
+    const existingView = targetSheetInfo.filterViews.find(view => view.title === filterViewName);
+    if (existingView) {
+      requests.push({
+        deleteFilterView: {
+          filterId: existingView.filterViewId
+        }
+      });
+    }
+  }
+  
+  // 非表示にする値を格納するリストを初期化
+  const valuesToHide = [];
+  const allCellValues = dataRange.getValues();
+
+  // データ範囲のすべてのセルを一つずつチェック
+  for (const row of allCellValues) {
+    const cellValue = row[0];
+    if (typeof cellValue !== 'string' || cellValue === '') {
+      continue; // 空のセルや文字列でない場合はスキップ
+    }
+
+    // セル内の名前をカンマで分割し、前後の空白を削除して配列にする
+    const names = cellValue.split(',').map(name => name.trim());
+
+    // 作成した名前の配列にGASの実行者名が "含まれていない" 場合
+    if (!names.includes(user_name)) {
+      // そのセルの値を「非表示リスト」に追加する
+      valuesToHide.push(cellValue);
+    }
+  }
+
+  // 万が一同じ値が複数リストに入った場合を想定し、重複を削除
+  const uniqueValuesToHide = [...new Set(valuesToHide)];
+
+  // 6. 新しいフィルタービューを追加するリクエストを作成
+  requests.push({
+    addFilterView: {
+      filter: {
+        title: filterViewName,
+        range: {
+          sheetId: sheetId,
+          startRowIndex: 0, // 範囲はヘッダーを含むシート全体
+          endRowIndex: sheet_active.getMaxRows(),
+          startColumnIndex: 0,
+          endColumnIndex: sheet_active.getMaxColumns()
+        },
+        criteria: {
+          // APIの列インデックスは0から始まるため -1 する
+          [targetColumnIndex - 1]: {
+            // 新しいロジックで作成した「非表示リスト」を使用
+            hiddenValues: uniqueValuesToHide
+          }
+        }
+      }
+    }
+  });
+
+  // リクエストをまとめて実行し、レスポンスを受け取る
+  const response = Sheets.Spreadsheets.batchUpdate({ requests: requests }, ssId);
+
+  // レスポンスから作成されたフィルタービューのIDを取得
+  const addFilterViewResponse = response.replies.find(reply => 'addFilterView' in reply);
+  if (!addFilterViewResponse) {
+    throw new Error('フィルタービューの作成に失敗しました。');
+  }
+  const filterViewId = addFilterViewResponse.addFilterView.filter.filterViewId;
+  
+  // フィルタービューを適用し、UIを最小限にするURLを生成
+  const url = `https://docs.google.com/spreadsheets/d/${ssId}/edit?rm=minimal#gid=${sheetId}&fvid=${filterViewId}`;
+  
+  // HTMLでダイアログを作成し、iframeでフィルタービュー適用済みのシートを表示
+  const htmlOutput = HtmlService.createHtmlOutput(
+    `
+    <style>
+      body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+      iframe { width: 100%; height: 100%; border: none; }
+    </style>
+    <iframe src="${url}"></iframe>
+    `
+  )
+  .setWidth(10000)
+  .setHeight(10000);
+  
+  SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理が完了しました")
+  SpreadsheetApp.getUi().showModalDialog(htmlOutput, `フィルタービュー適用中: ${filterViewName}`);
+}
