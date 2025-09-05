@@ -12,19 +12,19 @@ function sendNotificationToSlack_fromResourceSheet() {
     const outputRange = getRangesByHeaderNames(resourceSheet, row, headerNames_work);
     let workInfo = getValuesByRanges(outputRange);
 
-    // //依頼者SlackIDの特定
-    // const contactSheetId = getValueRanges('contactSheet.id',paramSheet)[0].offset(0,1).getValue();
-    // const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName('persons');
-    // const emailCol = getColByHeaderName(contactSheet,'E-mail 1 - Value');
-    // const slackIdCol = getColByHeaderName(contactSheet,'Slack ID');
-    // const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
-    // const contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
+    //依頼者SlackIDの特定
+    const contactSheetId = getValueRanges('contactSheet.id',paramSheet)[0].offset(0,1).getValue();
+    const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName('persons');
+    const emailCol = getColByHeaderName(contactSheet,'E-mail 1 - Value');
+    const slackIdCol = getColByHeaderName(contactSheet,'Slack ID');
+    const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
+    const contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
 
-    // if (contactSheetRow > 0) {
-    //   workInfo.client.slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
-    // }
+    if (contactSheetRow > 0) {
+      workInfo.client.slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
+    }
 
-    // sendNotificationToSlack(workInfo);
+    sendNotificationToSlack(workInfo);
     SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `${row}行目をSlack ワークフローに送信しました`);
   } else {
     ss.toast('処理を中断しました')

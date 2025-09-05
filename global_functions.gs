@@ -105,6 +105,21 @@ function getColByHeaderName(sheet, headerName) {
   return column;
 }
 
+function getRowBySingleCol(sheet, col, targetText) {
+  const lastRow = sheet.getLastRow();
+  const rangeValues = sheet.getRange(1,col,lastRow,1).getValues().flat();
+
+  let row;
+  for (let i = 0; rangeValues.length; i++) {
+    if (rangeValues[i] === targetText) {
+      row = i + 1;
+      return row;
+    }
+  }
+
+  return null;
+}
+
 function getRowBySingleCol(sheet, colIndex, targetText) {
   const lastRow = sheet.getLastRow();
   const rangeValues = sheet.getRange(1,colIndex,lastRow,1).getValues().flat();

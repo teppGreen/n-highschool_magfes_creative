@@ -122,7 +122,7 @@ function filterJoinedMembers() {
 
   // フィルターする対象の列番号を指定
   const targetColumnIndex = getColByHeaderName(sheet_active, '担当者');
-  
+
   // データ範囲を取得（ヘッダー行を除く）
   // 最終行が1行以下（データなし）の場合は処理を終了
   const lastRow = sheet_active.getLastRow();
@@ -130,9 +130,9 @@ function filterJoinedMembers() {
     SpreadsheetApp.getUi().alert('フィルター対象のデータがありません。');
     return;
   }
-  
+
   const dataRange = sheet_active.getRange(2, targetColumnIndex, lastRow - 1, 1);
-  
+
   // --- ここからSpreadsheet APIを使用した処理 ---
 
   // 既存の同名フィルタービューがあれば削除するためのリクエストを作成
@@ -150,7 +150,7 @@ function filterJoinedMembers() {
       });
     }
   }
-  
+
   // 非表示にする値を格納するリストを初期化
   const valuesToHide = [];
   const allCellValues = dataRange.getValues();
@@ -207,10 +207,10 @@ function filterJoinedMembers() {
     throw new Error('フィルタービューの作成に失敗しました。');
   }
   const filterViewId = addFilterViewResponse.addFilterView.filter.filterViewId;
-  
+
   // フィルタービューを適用し、UIを最小限にするURLを生成
   const url = `https://docs.google.com/spreadsheets/d/${ssId}/edit?rm=minimal#gid=${sheetId}&fvid=${filterViewId}`;
-  
+
   // HTMLでダイアログを作成し、iframeでフィルタービュー適用済みのシートを表示
   const htmlOutput = HtmlService.createHtmlOutput(
     `
@@ -223,7 +223,7 @@ function filterJoinedMembers() {
   )
   .setWidth(10000)
   .setHeight(10000);
-  
+
   SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理が完了しました")
   SpreadsheetApp.getUi().showModalDialog(htmlOutput, `フィルタービュー適用中: ${filterViewName}`);
 }
