@@ -1,3 +1,56 @@
+const CONFIG = {
+  SHEET_NAMES: {
+    WORKS: 'works',
+    PARAMETERS: 'parameters',
+    FORM: 'form',
+    PROJECTS: 'projects',
+    PERSONS: 'persons',
+    MEMBERS: 'members',
+    MAIN: 'main',
+    TASKS: 'tasks',
+  },
+  HEADER_NAMES: {
+    WORK_ID: '制作番号',
+    WORK_TITLE: '制作タイトル',
+    PROJECT_ID: '案件番号',
+    PROJECT_TITLE: '案件タイトル',
+    EMAIL: 'E-mail 1 - Value',
+    SLACK_ID: 'Slack ID',
+    STATUS: 'ステータス',
+    CONTENT: '内容',
+    DESIGN: 'デザイン要項',
+    REGULATION: '入稿規定',
+    NOTE: '依頼備考',
+    HEARING: 'ヒアリング',
+    REFERENCE: '参考物',
+    OTHER_MEMO: 'その他メモ',
+  },
+  PARAM_KEYS: {
+    CONTACT_SHEET_ID: 'contactSheet.id',
+    SYSTEM_START_YEAR: 'system.startYear',
+    WORK_FOLDER_URL: 'workInfo.url.workFolder',
+    WORK_SHEET_URL: 'workInfo.url.workSheet',
+    REGISTRATION_FORM_ID: 'registrationForm.id',
+  },
+  PROPERTIES: {
+    SLACK_WORKFLOW_URL: 'slackWorkflow_notifyRequest_WebReqestUrl',
+    SLACK_ADMIN_EMAIL: 'slackAdminEmail',
+    RESOURCE_SHEET_ID: 'sheetId_resource',
+  },
+  INITIAL_STATUS: '依頼受付',
+  FOLDER_PREFIX: {
+    MATERIAL: '【素材】',
+    DELIVERY: '【納品】',
+    WORKSHEET: '【制作管理】',
+  },
+  UI: {
+    RESOURCE_SHEET_LINK_TEXT: 'リソース管理シート',
+  },
+  SYSTEM_COMMANDS: {
+    DONT_SEND_NOTIFICATION: 'dontSendNotification',
+  },
+};
+
 // ローディングアニメーション
 const startProcessingAnimation = HtmlService.createHtmlOutputFromFile('processingAnimation').setWidth(400).setHeight(300);
 const stopProcessingAnimation = HtmlService.createHtmlOutput('<script>google.script.host.close()</script>');
