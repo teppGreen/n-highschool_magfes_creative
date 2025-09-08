@@ -19,7 +19,8 @@ function generateProjectNumbers() { //AA-ZZの案件番号を作成
 
 function integrityProjIdAndTitle(e) {
   const ui = SpreadsheetApp.getUi();
-  const sheet = e.source.getActiveSheet();
+  const ss = e.source;
+  const sheet = ss.getActiveSheet();
   const sheet_works = e.source.getSheetByName('works');
   const sheet_projects = e.source.getSheetByName('projects');
   const sheet_works_lastRow = sheet_works.getLastRow();
@@ -40,16 +41,16 @@ function integrityProjIdAndTitle(e) {
 
   if (sheet.getName() === 'works') {
     if (editedHeader === '案件番号') {
-      SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "案件番号を変更しています");
+      ss.toast('案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号が${e.oldValue}→${e.value}に変更されました`,-1);
       const projIdIndex = projIds_projects.indexOf(e.value);
       const projTitle = projTitles_projects[projIdIndex];
       sheet_works.getRange(e.range.getRow(), projTitleColumn_works).setValue(projTitle);
-      SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理が完了しました");
+      ss.toast('案件番号・案件タイトルの変更が完了しました');
     }
 
     if (editedHeader === '案件タイトル') {
-      SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "案件タイトルを変更しています");
       const projId = sheet_works.getRange(e.range.getRow(), projIdColumn_works).getValue();
+      ss.toast('他の制作物の案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号${projId}のタイトルが変更されました`,-1);
 
       let duplicationProjId;
       for (let i = 0; i < projTitles_projects.length; i++) {
@@ -80,14 +81,14 @@ function integrityProjIdAndTitle(e) {
         }
       }
 
-      SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理が完了しました");
+      ss.toast('案件番号・案件タイトルの変更が完了しました');
     }
   }
 
   if (sheet.getName() === 'projects') {
     if (editedHeader === '案件タイトル') {
-      SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "案件タイトルを変更しています");
       const projId = sheet_projects.getRange(e.range.getRow(), projIdColumn_projects).getValue();
+      ss.toast('worksタブの案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号${projId}のタイトルが変更されました`,-1);
       
       let duplicationProjId = [];
       for (let i = 0; i < projTitles_projects.length; i++) {
@@ -95,7 +96,8 @@ function integrityProjIdAndTitle(e) {
       }
 
       if (duplicationProjId.length > 1) {
-        ui.alert(`「${e.value}」は既に使用されています`,`案件番号：${duplicationProjId.join(',')}と重複しているため変更できません`,ui.ButtonSet.OK);
+        ss.toast('処理を中断しました');
+        ui.alert(`「${e.value}」は既に使用されています`,`案件番号：${duplicationProjId.join(',')}と重複しているため変更できません。他のタイトルを設定してください。`,ui.ButtonSet.OK);
         e.range.setValue(e.oldValue);
       } else {
         const projIdRange_works = sheet_works.getRange(2,projIdColumn_works,sheet_works_lastRow-1,1);
@@ -106,8 +108,8 @@ function integrityProjIdAndTitle(e) {
           sheet_works.getRange(row, projTitleColumn_works).setValue(e.value);
           syncSheet_resourceToWork(sheet_works,row);
         }
+        ss.toast('案件タイトルの変更が完了しました');
       }
-      SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理が完了しました");
     }
   }
 }

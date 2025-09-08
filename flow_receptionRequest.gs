@@ -1,15 +1,28 @@
-function sendNotificationToSlack_fromResourceSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const resourceSheet = ss.getSheetByName('works');
-  const paramSheet = ss.getSheetByName('parameters');
+function sendNotificationToSlack_fromResourceSheet() {  
   const ui = SpreadsheetApp.getUi();
-  const prompt = ui.prompt('Slack ワークフロー送信（手動）','worksタブの該当行番号を入力してください。',ui.ButtonSet.OK_CANCEL);
-  const row = Number(prompt.getResponseText());
+  ui.showModalDialog(startProcessingAnimation, "処理中");
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const currentSheetName = ss.getActiveSheet().getSheetName();
+  const workSheet = ss.getSheetByName('works');
+  const paramSheet = ss.getSheetByName('parameters');
+
+  const workIdCol = getColByHeaderName(workSheet,'制作番号');
+  const workTitleCol = getColByHeaderName(workSheet,'制作タイトル');
+
+  if (currentSheetName !== 'works') {
+    let workSheetRow = workSheet.getRange(1,workTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow();
+      if (workSheetRow === workSheet.getMaxRows()) workSheetRow = 2;
+    workSheet.getRange(workSheetRow, workIdCol).activateAsCurrentCell();
+    SpreadsheetApp.flush();
+  }
+
+  const prompt = ui.prompt('Slack ワークフロー送信（手動）','該当の制作番号を入力してください。',ui.ButtonSet.OK_CANCEL);
+  const workId = Number(prompt.getResponseText());
+  const row = getRowBySingleCol(workSheet, workIdCol, workId);
 
   if (row > 1 && prompt.getSelectedButton() === ui.Button.OK) {
-    SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中");
-    
-    const outputRange = getRangesByHeaderNames(resourceSheet, row, headerNames_work);
+    const outputRange = getRangesByHeaderNames(workSheet, row, headerNames_work);
     let workInfo = getValuesByRanges(outputRange);
 
     //依頼者SlackIDの特定
@@ -25,9 +38,9 @@ function sendNotificationToSlack_fromResourceSheet() {
     }
 
     sendNotificationToSlack(workInfo);
-    SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `${row}行目をSlack ワークフローに送信しました`);
+    ui.showModalDialog(stopProcessingAnimation, `${row}行目をSlack ワークフローに送信しました`);
   } else {
-    ss.toast('処理を中断しました')
+    ui.showModalDialog(stopProcessingAnimation, `処理を中断しました`);
   }
 }
 
@@ -85,8 +98,15 @@ function receptionRequest(formRow) {
   const workTitleCol = getColByHeaderName(workSheet,'制作タイトル');
   let workSheetRow = workSheet.getRange(1,workTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
     if (workSheetRow === workSheet.getMaxRows() + 1) workSheetRow = 2;
+
+  // 未発行の制作番号を求めるために、発行済みの制作番号の数字を全て足したものを、制作番号の要素数で割って、2倍する。
+  const workIds = workSheet.getRange(2,workIdCol,workSheetRow-2,1).getValues().flat();
+  let total = workIds.reduce(function(sum, element){ 
+    return sum + element;
+  });
+
+  workInfo.workId = total / workIds.length * 2;
   
-  workInfo.workId = workSheet.getRange(workSheetRow, workIdCol).getValue();
 
   //制作フォルダ・制作シートの作成
   const newFolder = createNewFolder(paramSheet, workInfo);
@@ -113,7 +133,8 @@ function receptionRequest(formRow) {
 }
 
 function createNewFolder(paramSheet, workInfo) {
-  const folderName = `${workInfo.workId}_${workInfo.projTitle}_${workInfo.workTitle}`;
+  const systemStartYear = getValueRanges('system.startYear', paramSheet)[0].offset(0,1).getValue();
+  const folderName = `${systemStartYear}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFolderId = getValueRanges('workInfo.url.workFolder', paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
@@ -133,7 +154,7 @@ function createNewFolder(paramSheet, workInfo) {
 
 function createWorkSheet(paramSheet, folder, workInfo, requestInfo) {
   folder = DriveApp.getFolderById(extractFileId(folder));
-  const sheetName = '【制作管理】' + workInfo.projId + String(workInfo.workId).padStart(3,'0') + '_' + workInfo.projTitle + '_' + workInfo.workTitle;
+  const sheetName = '【制作管理】' + workInfo.projId + String(workInfo.workId).padStart(4,'0') + '_' + workInfo.projTitle + '_' + workInfo.workTitle;
   const parentSheetId = getValueRanges('workInfo.url.workSheet', paramSheet)[0].offset(0,1).getValue();
   const sheet = DriveApp.getFileById(parentSheetId).makeCopy(sheetName,folder);
   
@@ -187,10 +208,22 @@ function writeResponseToSheet_work(workInfo,requestInfo){
 
   const workSheet_tasks = workSheet.getSheetByName('tasks');
   const statusCol = getColByHeaderName(workSheet_tasks, 'ステータス');
-    if (requestInfo.hearingType.includes('不要')) {
-      const targetStatusRow = getValueRanges('初回ヒアリング',workSheet_tasks)[0].getRow();
-      workSheet_tasks.getRange(targetStatusRow, statusCol).clearContent();
+  const statuslists = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
+  const inputStatus = new Array();
+
+  for (let i = 0; i < statuslists.length; i++) {
+    if (i === 0) {
+      inputStatus.push(['実行中']); //依頼受付のステータスを「実行中」に
+      continue;
+    } else if (i === 1 && requestInfo.hearingType.includes('不要')) {
+      inputStatus.push(['']); //ヒアリングが「基本的に不要」の場合は、初回ヒアリングのステータスを空欄（対応不要の意）に
+      continue;
+    } else {
+      inputStatus.push(['未着手']);
     }
+  }
+  
+  workSheet_tasks.getRange(2,statusCol,inputStatus.length,1).setValues(inputStatus);
 }
 
 function sendNotificationToSlack(workInfo,requestInfo) {

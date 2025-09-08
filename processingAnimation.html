@@ -3,21 +3,45 @@
 
 <head>
   <style type="text/css">
+    * { 
+      box-sizing: border-box; /* ボックスサイズの計算方法を統一 */
+    }
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      overflow: hidden; /* スクロールバーを非表示にする */
+    }
+
+    /* ★★★★★ 修正箇所 ★★★★★ */
+    body {
+      /* Flexboxを使って中身を中央揃えにする設定 */
+      display: flex;
+      flex-direction: column;   /* 要素を縦に並べる */
+      justify-content: center;  /* 垂直方向（縦）の中央揃え */
+      align-items: center;      /* 水平方向（横）の中央揃え */
+      
+      font-family: "Arial",sans-serif ;
+    }
+    /* ★★★★★★★★★★★★★★★ */
+
+
     .loader,
     .loader:after {
       border-radius: 50%;
-      width: 10em;
-      height: 10em;
+      width: 15em;
+      height: 15em;
     }
     .loader {
-      margin: 60px auto;
+      margin: 0 0 4em 0;
+
       font-size: 10px;
       position: relative;
       text-indent: -9999em;
-      border-top: 1.1em solid rgba(15,128,68,0.2);
-      border-right: 1.1em solid rgba(15,128,68,0.2);
-      border-bottom: 1.1em solid rgba(15,128,68,0.2);
-      border-left: 1.1em solid #0f8044;
+      border-top: 1.2em solid rgba(15,128,68,0.2);
+      border-right: 1.2em solid rgba(15,128,68,0.2);
+      border-bottom: 1.2em solid rgba(15,128,68,0.2);
+      border-left: 1.2em solid rgb(15,128,68);
       -webkit-transform: translateZ(0);
       -ms-transform: translateZ(0);
       transform: translateZ(0);
@@ -44,15 +68,11 @@
         transform: rotate(360deg);
       }
     }
-  
-  body {
-    font-family: "Arial",sans-serif ;
-  }
   </style>
 </head>
 
 <body>
   <div class="loader">Processing...</div>
-  <center> 画面を閉じずにしばらくお待ちください。 </center>
+  <center> 画面を閉じずにしばらくお待ちください </center>
 </body>
 </html>

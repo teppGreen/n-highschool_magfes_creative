@@ -1,6 +1,14 @@
-function sheetId() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getActiveSheet();
+function getSpreadsheetId() {
+  const id = SpreadsheetApp.getActiveSpreadsheet().getId();
+  console.log(`spreadsheetId: ${id}`);
+  
+  return id;
+}
 
-  return ss.getId() + '.' + sheet.getSheetId();
+function getBindFormId() {
+  const formUrl = SpreadsheetApp.getActiveSpreadsheet().getFormUrl();
+  const formId = FormApp.openByUrl(formUrl).getId();
+  console.log(formUrl);
+
+  return formId;
 }

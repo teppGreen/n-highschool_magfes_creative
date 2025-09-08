@@ -1,16 +1,28 @@
 function syncSheet_resourceToWork_temp() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const resourceSheet = ss.getSheetByName('works');
+  const currentSheetName = ss.getActiveSheet().getSheetName();
   const ui = SpreadsheetApp.getUi();
-  const prompt = ui.prompt('リソース→制作管理シート 同期（手動）','worksタブの該当行番号を入力してください。',ui.ButtonSet.OK_CANCEL);
-  const row = Number(prompt.getResponseText());
+  ui.showModalDialog(startProcessingAnimation, "処理中");
 
-  if (row > 1 && prompt.getSelectedButton() === ui.Button.OK) {
-    SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "同期中");
-    syncSheet_resourceToWork(resourceSheet,row);
-    SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `${row}行目の同期が完了しました`);
+  if (currentSheetName !== 'works') {
+    const formSheet = ss.getSheetByName('works');
+    formSheet.getRange(2,1).activateAsCurrentCell();
+    SpreadsheetApp.flush();
+  }
+
+  const prompt = ui.prompt('リソース→制作管理シート 同期（手動）','該当の制作番号を入力してください。',ui.ButtonSet.OK_CANCEL);
+
+  if (prompt.getSelectedButton() === ui.Button.OK) {
+    const workSheet = ss.getSheetByName('works');
+    const workIdCol = getColByHeaderName(workSheet,'制作番号');
+    const workId = Number(prompt.getResponseText());
+    const row = getRowBySingleCol(workSheet, workIdCol, workId);
+    if (row > 1) {
+      syncSheet_resourceToWork(workSheet,row);
+      SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `同期が完了しました`);
+    }
   } else {
-    ss.toast('処理を中断しました')
+    SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, `処理を中断しました`);
   }
 }
 
@@ -31,10 +43,11 @@ function syncSheet_resourceToWork(sheet,row){
   const workSheet_main = workSheet.getSheetByName('main');
   const workSheet_tasks = workSheet.getSheetByName('tasks');
   
-  getValueRanges('管理番号', workSheet_main)[0].offset(0,2).setValue(workInfo.projId);
-  getValueRanges('管理番号', workSheet_main)[0].offset(0,3).setValue(workInfo.workId);
-  getValueRanges('タイトル', workSheet_main)[0].offset(0,2).setValue(workInfo.projTitle);
-  getValueRanges('タイトル', workSheet_main)[0].offset(0,3).setValue(workInfo.workTitle);
+  getValueRanges('管理番号', workSheet_main)[0].offset(0,1).setValue(workInfo.manageId);
+  getValueRanges('管理番号', workSheet_main)[0].offset(0,3).setValue(workInfo.projId);
+  getValueRanges('管理番号', workSheet_main)[0].offset(0,2).setValue(workInfo.workId);
+  getValueRanges('タイトル', workSheet_main)[0].offset(0,3).setValue(workInfo.projTitle);
+  getValueRanges('タイトル', workSheet_main)[0].offset(0,2).setValue(workInfo.workTitle);
   getValueRanges('ジャンル', workSheet_main)[0].offset(0,2).setValue(workInfo.genre);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,2).setValue(workInfo.client.nickname);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);
@@ -44,15 +57,19 @@ function syncSheet_resourceToWork(sheet,row){
   getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
   getValueRanges('来年も作るべきか', workSheet_main)[0].offset(0,1).setValue(workInfo.review.willMakeNextYear);
 
+  
+  const generalSheetLabel = 'リソース管理シート';
+  const generalSheetUrl = `https://docs.google.com/spreadsheets/d/${sheet.getParent().getId()}/edit#gid=${sheet.getSheetId()}&range=A${row}`;
+  const generalSheetRichtext = SpreadsheetApp.newRichTextValue().setText(generalSheetLabel).setLinkUrl(generalSheetUrl).build();
+  getValueRanges(generalSheetLabel, workSheet_main)[0].setRichTextValue(generalSheetRichtext);
+
   const urlLabels = ['制作フォルダ','納品フォルダ','Canva フォルダ','Slack チャンネル','Slack スレッド'];
   for (let key in workInfo.url) {
     const urlIndex = urlLabels.indexOf(headerNames_work['url'][key]);
     if (urlIndex >= 0) {
       const url = workInfo['url'][key];
-      if (url) {
-        const richtext = SpreadsheetApp.newRichTextValue().setText(urlLabels[urlIndex]).setLinkUrl(url).build();
-        getValueRanges(urlLabels[urlIndex], workSheet_main)[0].setRichTextValue(richtext);
-      }
+      const richtext = SpreadsheetApp.newRichTextValue().setText(urlLabels[urlIndex]).setLinkUrl(url).build();
+      getValueRanges(urlLabels[urlIndex], workSheet_main)[0].setRichTextValue(richtext);
     }
   }
 
@@ -70,14 +87,21 @@ function syncSheet_resourceToWork(sheet,row){
   oldJoinedMembers_range.offset(0,-1).setValue(false);
 
   for (const newJoinedMember of newJoinedMembers) {
-    const nameRange = getValueRanges(newJoinedMember, oldJoinedMembers_range);
-    if (nameRange) {
-      const inputRange = nameRange[0].offset(0,-1);
-      inputRange.setValue(true);
+    const currentNames = oldJoinedMembers_range.getValues().flat();
+    let rowIndex = currentNames.indexOf(newJoinedMember);
+
+    if (rowIndex < 0) {
+      rowIndex = currentNames.indexOf('');
+        if (rowIndex < 0) {
+          throw new Error(`管理番号: ${workInfo.manageId}\n新しく担当となったmemberの名前の追加を試みましたが、人数の上限に達していたためできませんでした。`);
+        }
+      oldJoinedMembers_range.offset(rowIndex,0,1,1).setValue(newJoinedMember);
     }
+
+    oldJoinedMembers_range.offset(rowIndex,-1,1,1).setValue(true);
   }
 
-  changeFileName(workInfo);
+  changeFileName_work(workInfo);
 }
 
 function syncSheet_resourceToWork_status(e) {

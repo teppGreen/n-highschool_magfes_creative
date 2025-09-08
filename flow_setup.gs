@@ -1,9 +1,8 @@
 function setTriggers_workSheet() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet();
-
   // スプレッドシートにローディングアニメーションを表示
   SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中");
-
+  
+  const sheet = SpreadsheetApp.getActiveSpreadsheet();
   const drawings = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getDrawings();
   for (let drawing of drawings) {
     if (drawing.getOnAction() === 'setTriggers') drawing.remove()

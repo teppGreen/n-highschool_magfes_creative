@@ -43,8 +43,9 @@ const headerNames_work = { //リソース管理シート workタブの各列の�
   }
 }
 
-function changeFileName(workInfo) {
-  const fileName = `${workInfo.projId}${String(workInfo.workId).padStart(3,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
+function changeFileName_work(workInfo) {
+  const manageId = workInfo.manageId.split('-');
+  const fileName = `${manageId[0]}-${manageId[1]}_${workInfo.projTitle}_${workInfo.workTitle}`;
 
   if (workInfo.url.workSheet) {
     const fileId = extractFileId(workInfo.url.workSheet);
@@ -111,6 +112,7 @@ function filterJoinedMembers() {
   const memberRow = getRowBySingleCol(sheet_members, membersEmailColIndex, user_email);
 
   if (!memberRow) {
+    SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "エラー")
     ui.alert('フィルタービューを作成できません','membersタブに名前とメールアドレスを正しく登録してください。',ui.ButtonSet.OK);
     sheet_members.getRange('E2').activateAsCurrentCell();
     return;
@@ -121,7 +123,7 @@ function filterJoinedMembers() {
   const filterViewName = `担当者_${user_name}`
 
   // フィルターする対象の列番号を指定
-  const targetColumnIndex = getColByHeaderName(sheet_active, '担当者');
+  const joinedMembersColIndex = getColByHeaderName(sheet_active, '担当者');
 
   // データ範囲を取得（ヘッダー行を除く）
   // 最終行が1行以下（データなし）の場合は処理を終了
@@ -131,7 +133,7 @@ function filterJoinedMembers() {
     return;
   }
 
-  const dataRange = sheet_active.getRange(2, targetColumnIndex, lastRow - 1, 1);
+  const dataRange = sheet_active.getRange(2, joinedMembersColIndex, lastRow - 1, 1);
 
   // --- ここからSpreadsheet APIを使用した処理 ---
 
@@ -141,13 +143,24 @@ function filterJoinedMembers() {
   const targetSheetInfo = sheetInfo.sheets.find(s => s.properties.sheetId === sheetId);
 
   if (targetSheetInfo && targetSheetInfo.filterViews) {
-    const existingView = targetSheetInfo.filterViews.find(view => view.title === filterViewName);
-    if (existingView) {
-      requests.push({
-        deleteFilterView: {
-          filterId: existingView.filterViewId
+    const existingViews = targetSheetInfo.filterViews;
+
+    for (let i = 0; i < existingViews.length; i++) {
+      const existingViewName = existingViews[i].title;
+
+      if (typeof existingViewName === 'string') {
+        const match = existingViewName.match(/^(.*) \(.*\)$/);
+        if (match) {
+          if (match[1] !== filterViewName) continue;
+        } else if(existingViewName !== filterViewName) {
+          continue;
         }
-      });
+        requests.push({
+          deleteFilterView: {
+            filterId: existingViews[i].filterViewId
+          }
+        });
+      }
     }
   }
 
@@ -158,6 +171,14 @@ function filterJoinedMembers() {
   // データ範囲のすべてのセルを一つずつチェック
   for (const row of allCellValues) {
     const cellValue = row[0];
+
+    // セルが空白（''）の場合、無条件で非表示リストに追加する
+    // これにより (Blank) がフィルターから除外される
+    if (cellValue === '') {
+      valuesToHide.push(cellValue);
+      continue; // 次のセルの処理へ
+    }
+
     if (typeof cellValue !== 'string' || cellValue === '') {
       continue; // 空のセルや文字列でない場合はスキップ
     }
@@ -173,13 +194,14 @@ function filterJoinedMembers() {
   }
 
   // 万が一同じ値が複数リストに入った場合を想定し、重複を削除
-  const uniqueValuesToHide = [...new Set(valuesToHide)];
+  const uniqueMembersToHide = [...new Set(valuesToHide)];
+  const createdDatetime = Utilities.formatDate(new Date(), 'JST', 'MM/dd HH:mm:ss');
 
   // 6. 新しいフィルタービューを追加するリクエストを作成
   requests.push({
     addFilterView: {
       filter: {
-        title: filterViewName,
+        title: `${filterViewName} (${createdDatetime})`,
         range: {
           sheetId: sheetId,
           startRowIndex: 0, // 範囲はヘッダーを含むシート全体
@@ -189,9 +211,9 @@ function filterJoinedMembers() {
         },
         criteria: {
           // APIの列インデックスは0から始まるため -1 する
-          [targetColumnIndex - 1]: {
+          [joinedMembersColIndex - 1]: {
             // 新しいロジックで作成した「非表示リスト」を使用
-            hiddenValues: uniqueValuesToHide
+            hiddenValues: uniqueMembersToHide
           }
         }
       }

@@ -4,8 +4,9 @@ function displayRequestForm_normal() {
   const value = key.offset(0,1).getValue();
   const form = FormApp.openById(value);
   const url = form.getPublishedUrl();
+  const params = ['entry.33036292=dontSendNotification'];
 
-  displayRequestForm(`${url}?`,'制作依頼フォーム')
+  displayRequestForm('制作依頼フォーム',url, params)
 }
 
 function processSystemCommand(requestInfo) {

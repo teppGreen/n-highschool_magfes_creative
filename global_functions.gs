@@ -4,12 +4,18 @@ const stopProcessingAnimation = HtmlService.createHtmlOutput('<script>google.scr
 // SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中"); 
 // SpreadsheetApp.getUi().showModalDialog(stopProcessingAnimation, "処理完了")
 
+function previewProcessingAnimation() {
+  SpreadsheetApp.getUi().showModalDialog(startProcessingAnimation, "処理中"); 
+}
+
 function getValueRanges(targetValue, searchRange) {
   try{
     if (!targetValue || !searchRange) return;
     const targetRanges = searchRange.createTextFinder(targetValue).matchEntireCell(true).findAll().map(range => range);
+    console.log(`targetValue: ${targetValue}`);
     return targetRanges;
-  } catch {
+  } catch(error) {
+    console.log(`targetValue: ${targetValue}\ntargetRanges: null\n${error.message}`);
     return null;
   }
 }
@@ -142,10 +148,21 @@ function deleteDrawings() {
   }
 }
 
-function displayRequestForm(url,title) {
-  const html = `<iframe src="${url}&embedded=true" width="640" height="5000" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>`;
-  
-  const htmlOutput = HtmlService.createHtmlOutput(html).setWidth(720).setHeight(3000);
+function displayRequestForm(title,url,params) {
+  const param = `?embedded=true&${params ? params.join('&') : ''}`;
+  const iframeSrc = url + param;
+  console.log(`Display form: ${iframeSrc}`)
+
+  const htmlOutput = HtmlService.createHtmlOutput(
+    `
+    <style>
+      { box-sizing: border-box; }
+      body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+      iframe { width: 100%; height: 100%; border: none; }
+    </style>
+    <iframe src="${iframeSrc}"></iframe>
+    `
+  ).setWidth(720).setHeight(10000);
   
   const ui = SpreadsheetApp.getUi();
   ui.showModalDialog(htmlOutput,title);
