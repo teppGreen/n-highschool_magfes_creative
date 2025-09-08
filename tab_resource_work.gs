@@ -67,17 +67,17 @@ function inputStatusChangedDatetime_resource(e) {
   if (sheet.getRange(1,editedCol).getValue() !== 'ステータス') return;
   
   let newStatus, datetimeKey, inputValue;
-  if (e.value == '依頼取消') {
-    newStatus = '納品';
+  if (e.value == CONFIG.STATUS.CANCELLED) {
+    newStatus = CONFIG.STATUS.STEP6;
   } else {
     newStatus = e.value;
   }
   
-  if (newStatus === '納品') { 
+  if (newStatus === CONFIG.STATUS.STEP6) { 
     datetimeKey = newStatus + '日時';
   } else {
     datetimeKey = newStatus + '開始日時'
-    inputValue = '実行中'
+    inputValue = CONFIG.TASK_STATUS.IN_PROGRESS;
   }
 
   const datetimeRange = sheet.getRange(editedRow,getColByHeaderName(sheet,datetimeKey));

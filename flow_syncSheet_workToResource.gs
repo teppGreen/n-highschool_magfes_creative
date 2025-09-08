@@ -80,7 +80,7 @@ function syncSheet_workToResource(e) {
   }
 
   if (workSheet_active.getName() === 'tasks') {
-    const statusList = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
+    const statusList = Object.values(CONFIG.STATUS).filter(status => status !== CONFIG.STATUS.CANCELLED);
     const editedTitleRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'タイトル'));
     const editedTitle = editedTitleRange.getValue();
     
@@ -93,14 +93,14 @@ function syncSheet_workToResource(e) {
       // ステータス変更を処理
       console.log('ステータスが変更されました。');
       if (editedHeader === 'ステータス') {
-        if ((e.value === '実行中') || (editedTitle === '納品' && e.value === '完了')) {
+        if ((e.value === CONFIG.TASK_STATUS.IN_PROGRESS) || (editedTitle === CONFIG.STATUS.STEP6 && e.value === CONFIG.TASK_STATUS.DONE)) {
           const resourceSheetStatusCol = getColByHeaderName(resourceSheet,'ステータス');
           resourceSheet.getRange(workSheetRow, resourceSheetStatusCol).setValue(editedTitle);
         }
       }
 
       // 日時変更を処理
-      if (editedTitle === '納品') {
+      if (editedTitle === CONFIG.STATUS.STEP6) {
         resourceSheet.getRange(workSheetRow, getColByHeaderName(resourceSheet, `${editedTitle}日時`)).setValue(startDatetime);
         resourceSheet.getRange(workSheetRow, getColByHeaderName(resourceSheet, `${editedTitle}期限日時`)).setValue(endDatetime);
       } else {

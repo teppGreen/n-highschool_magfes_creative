@@ -5,7 +5,6 @@ function sendNotificationToSlack_fromResourceSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const currentSheetName = ss.getActiveSheet().getSheetName();
   const workSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.WORKS);
-  const paramSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PARAMETERS);
 
   const workIdCol = getColByHeaderName(workSheet,CONFIG.HEADER_NAMES.WORK_ID);
   const workTitleCol = getColByHeaderName(workSheet,CONFIG.HEADER_NAMES.WORK_TITLE);
@@ -25,17 +24,7 @@ function sendNotificationToSlack_fromResourceSheet() {
     const outputRange = getRangesByHeaderNames(workSheet, row, headerNames_work);
     let workInfo = getValuesByRanges(outputRange);
 
-    //依頼者SlackIDの特定
-    const contactSheetId = getValueRanges(CONFIG.PARAM_KEYS.CONTACT_SHEET_ID,paramSheet)[0].offset(0,1).getValue();
-    const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName(CONFIG.SHEET_NAMES.PERSONS);
-    const emailCol = getColByHeaderName(contactSheet,CONFIG.HEADER_NAMES.EMAIL);
-    const slackIdCol = getColByHeaderName(contactSheet,CONFIG.HEADER_NAMES.SLACK_ID);
-    const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
-    const contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
-
-    if (contactSheetRow > 0) {
-      workInfo.client.slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
-    }
+    workInfo.client.slackId = getSlackIdByEmail(workInfo.client.email);
 
     sendNotificationToSlack(workInfo);
     ui.showModalDialog(stopProcessingAnimation, `${row}行目をSlack ワークフローに送信しました`);
@@ -53,66 +42,17 @@ function receptionRequest(formRow) {
 
   const formResponse = formSheet.getRange(formRow, 1, 1, formSheet.getLastColumn()).getValues().flat();
   
-  let workInfo = {
-    genre: formResponse[4],
-    projTitle: formResponse[2],
-    workTitle: formResponse[3],
-    status: CONFIG.INITIAL_STATUS, //初期値
-    datetime: { request: formResponse[0], expected: formResponse[10] },
-    client: { email: formResponse[1] },
-    url: { footageFolder: formResponse[9] },
-  }
+  const { workInfo, requestInfo } = formatFormResponse(formResponse);
 
-  let requestInfo = {
-    content: formResponse[5], 
-    design: formResponse[6],
-    note: formResponse[12],
-    regulation: formResponse[8],
-    hearingType: formResponse[11],
-    hearingDatetime: [formResponse[14],formResponse[15],formResponse[16]],
-    reference: formResponse[7],
-    systemCommand: []
-  }
+  workInfo.projId = findOrCreateProjectId(projSheet, workInfo.projTitle);
 
-  // システムコマンドを配列にして入れる
-  requestInfo.systemCommand = formResponse[13].split(',').map(item => item.trim());
-
-  //案件番号の決定
-  const projIdCol = getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_ID);
-  const projTitleCol = getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_TITLE);
-  let projSheetRow = projSheet.getRange(1,projTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
-    if (projSheetRow === projSheet.getMaxRows() + 1) projSheetRow = 2;
-  const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
-  const projTitleIndex = projTitles.indexOf(workInfo.projTitle);
+  const { workId, workSheetRow } = determineWorkId(workSheet);
+  workInfo.workId = workId;
   
-  if(projTitleIndex < 0) {
-    workInfo.projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
-  } else {
-    projSheetRow = projTitleIndex+1;
-    workInfo.projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
-  }
-  projSheet.getRange(projSheetRow,projTitleCol).setValue(workInfo.projTitle);
-
-  //制作番号の決定
-  const workIdCol = getColByHeaderName(workSheet,CONFIG.HEADER_NAMES.WORK_ID);
-  const workTitleCol = getColByHeaderName(workSheet,CONFIG.HEADER_NAMES.WORK_TITLE);
-  let workSheetRow = workSheet.getRange(1,workTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
-    if (workSheetRow === workSheet.getMaxRows() + 1) workSheetRow = 2;
-
-  // 未発行の制作番号を求めるために、発行済みの制作番号の数字を全て足したものを、制作番号の要素数で割って、2倍する。
-  const workIds = workSheet.getRange(2,workIdCol,workSheetRow-2,1).getValues().flat();
-  let total = workIds.reduce(function(sum, element){
-    return sum + element;
-  });
-
-  workInfo.workId = total / workIds.length * 2;
-  
-
-  //制作フォルダ・制作シートの作成
-  const newFolder = createNewFolder(paramSheet, workInfo);
-  workInfo.url.workFolder = newFolder.workFolder.getUrl();
-  workInfo.url.deliveryFolder = newFolder.deliveryFolder.getUrl();
-  workInfo.url.workSheet = createWorkSheet(paramSheet, workInfo.url.workFolder, workInfo, requestInfo).getUrl();
+  const urls = setupWorkEnvironment(paramSheet, workInfo, requestInfo);
+  workInfo.url.workFolder = urls.workFolder;
+  workInfo.url.deliveryFolder = urls.deliveryFolder;
+  workInfo.url.workSheet = urls.workSheet;
 
   writeResponseToSheet_resource(projSheet,workSheet,workSheetRow,workInfo);
 
@@ -130,6 +70,89 @@ function receptionRequest(formRow) {
   // }
   
   processSystemCommand(requestInfo);
+}
+
+function formatFormResponse(formResponse) {
+  const workInfo = {
+    genre: formResponse[4],
+    projTitle: formResponse[2],
+    workTitle: formResponse[3],
+    status: CONFIG.STATUS.STEP1, //初期値
+    datetime: { request: formResponse[0], expected: formResponse[10] },
+    client: { email: formResponse[1] },
+    url: { footageFolder: formResponse[9] },
+  };
+
+  const requestInfo = {
+    content: formResponse[5], 
+    design: formResponse[6],
+    note: formResponse[12],
+    regulation: formResponse[8],
+    hearingType: formResponse[11],
+    hearingDatetime: [formResponse[14],formResponse[15],formResponse[16]],
+    reference: formResponse[7],
+    systemCommand: formResponse[13].split(',').map(item => item.trim()),
+  };
+
+  return { workInfo, requestInfo };
+}
+
+function findOrCreateProjectId(projSheet, projTitle) {
+  const projIdCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_ID);
+  const projTitleCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_TITLE);
+  
+  let projSheetRow = projSheet.getRange(1, projTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
+  if (projSheetRow === projSheet.getMaxRows() + 1) {
+    projSheetRow = 2;
+  }
+  
+  const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
+  const projTitleIndex = projTitles.indexOf(projTitle);
+  
+  let projId;
+  if (projTitleIndex < 0) {
+    // 新しい案件の場合
+    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
+    projSheet.getRange(projSheetRow, projTitleCol).setValue(projTitle);
+  } else {
+    // 既存の案件の場合
+    projSheetRow = projTitleIndex + 1;
+    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
+  }
+  
+  return projId;
+}
+
+function determineWorkId(workSheet) {
+  const workIdCol = getColByHeaderName(workSheet, CONFIG.HEADER_NAMES.WORK_ID);
+  const workTitleCol = getColByHeaderName(workSheet, CONFIG.HEADER_NAMES.WORK_TITLE);
+  let workSheetRow = workSheet.getRange(1, workTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
+  
+  let workId;
+  if (workSheetRow === workSheet.getMaxRows() + 1) {
+    workSheetRow = 2;
+    workId = 1;
+  } else {
+    // 未発行の制作番号を求めるために、発行済みの制作番号の数字を全て足したものを、制作番号の要素数で割って、2倍する。
+    const workIds = workSheet.getRange(2, workIdCol, workSheetRow - 2, 1).getValues().flat();
+    let total = workIds.reduce(function(sum, element) {
+      return sum + element;
+    });
+    workId = total / workIds.length * 2;
+  }
+
+  return { workId, workSheetRow };
+}
+
+function setupWorkEnvironment(paramSheet, workInfo, requestInfo) {
+  const folderUrls = createNewFolder(paramSheet, workInfo);
+  const workSheetUrl = createWorkSheet(paramSheet, folderUrls.workFolder, workInfo, requestInfo).getUrl();
+
+  return {
+    workFolder: folderUrls.workFolder.getUrl(),
+    deliveryFolder: folderUrls.deliveryFolder.getUrl(),
+    workSheet: workSheetUrl
+  };
 }
 
 function createNewFolder(paramSheet, workInfo) {
@@ -208,18 +231,18 @@ function writeResponseToSheet_work(workInfo,requestInfo){
 
   const workSheet_tasks = workSheet.getSheetByName(CONFIG.SHEET_NAMES.TASKS);
   const statusCol = getColByHeaderName(workSheet_tasks, CONFIG.HEADER_NAMES.STATUS);
-  const statuslists = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
+  const statuslists = Object.values(CONFIG.STATUS).filter(status => status !== CONFIG.STATUS.CANCELLED);
   const inputStatus = new Array();
 
   for (let i = 0; i < statuslists.length; i++) {
     if (i === 0) {
-      inputStatus.push(['実行中']); //依頼受付のステータスを「実行中」に
+      inputStatus.push([CONFIG.TASK_STATUS.IN_PROGRESS]); //依頼受付のステータスを「実行中」に
       continue;
     } else if (i === 1 && requestInfo.hearingType.includes('不要')) {
       inputStatus.push(['']); //ヒアリングが「基本的に不要」の場合は、初回ヒアリングのステータスを空欄（対応不要の意）に
       continue;
     } else {
-      inputStatus.push(['未着手']);
+      inputStatus.push([CONFIG.TASK_STATUS.NOT_STARTED]);
     }
   }
   
@@ -262,27 +285,15 @@ function sendNotificationToSlack(workInfo,requestInfo) {
     note = requestInfo.note;
   }
 
-  //依頼者SlackIDの特定
-  const slackAdminEmail = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPERTIES.SLACK_ADMIN_EMAIL);
-  const contactSheetId = getValueRanges(CONFIG.PARAM_KEYS.CONTACT_SHEET_ID,paramSheet)[0].offset(0,1).getValue();
-  const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName(CONFIG.SHEET_NAMES.PERSONS);
-  const emailCol = getColByHeaderName(contactSheet,CONFIG.HEADER_NAMES.EMAIL);
-  const slackIdCol = getColByHeaderName(contactSheet,CONFIG.HEADER_NAMES.SLACK_ID);
-  const emailList = contactSheet.getRange(1,emailCol,contactSheet.getLastRow(),1).getValues().flat();
-  let contactSheetRow = emailList.indexOf(workInfo.client.email) + 1;
-  let slackId;
+  let slackId = getSlackIdByEmail(workInfo.client.email);
 
-  if (contactSheetRow > 0) {
-    slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
-  } else {
+  if (!slackId) {
+    const slackAdminEmail = PropertiesService.getScriptProperties().getProperty(CONFIG.PROPERTIES.SLACK_ADMIN_EMAIL);
+    slackId = getSlackIdByEmail(slackAdminEmail);
+
     const registrationFormId = getValueRanges(CONFIG.PARAM_KEYS.REGISTRATION_FORM_ID,paramSheet)[0].offset(0,1).getValue();
     const registrationFormUrl = `https://docs.google.com/forms/d/e/${registrationFormId}/viewform`;
-    contactSheetRow = emailList.indexOf(slackAdminEmail) + 1;
-
-    if (contactSheetRow > 0) {
-      slackId = contactSheet.getRange(contactSheetRow,slackIdCol).getValue();
-    }
-
+    
     // 備考に基本情報収集フォームが送られていないことを書き足す
     if (note.length === 0) {
       note += '\n\n';

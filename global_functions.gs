@@ -4,7 +4,7 @@ const CONFIG = {
     PARAMETERS: 'parameters',
     FORM: 'form',
     PROJECTS: 'projects',
-    PERSONS: 'persons',
+    PERSONS: 'persons', //contactシート
     MEMBERS: 'members',
     MAIN: 'main',
     TASKS: 'tasks',
@@ -25,6 +25,10 @@ const CONFIG = {
     REFERENCE: '参考物',
     OTHER_MEMO: 'その他メモ',
   },
+  HEADER_NAMES_CONTACT: {
+    EMAIL: 'E-mail 1 - Value',
+    SLACK_ID: 'Slack ID',
+  },
   PARAM_KEYS: {
     CONTACT_SHEET_ID: 'contactSheet.id',
     SYSTEM_START_YEAR: 'system.startYear',
@@ -37,7 +41,20 @@ const CONFIG = {
     SLACK_ADMIN_EMAIL: 'slackAdminEmail',
     RESOURCE_SHEET_ID: 'sheetId_resource',
   },
-  INITIAL_STATUS: '依頼受付',
+  STATUS: {
+    STEP1: '依頼受付',
+    STEP2: '初回ヒアリング',
+    STEP3: '制作',
+    STEP4: 'ブラッシュアップ',
+    STEP5: '班長承認',
+    STEP6: '納品',
+    CANCELLED: '依頼取消',
+  },
+  TASK_STATUS: {
+    NOT_STARTED: '未着手',
+    IN_PROGRESS: '実行中',
+    DONE: '完了',
+  },
   FOLDER_PREFIX: {
     MATERIAL: '【素材】',
     DELIVERY: '【納品】',
@@ -164,21 +181,6 @@ function getColByHeaderName(sheet, headerName) {
   return column;
 }
 
-function getRowBySingleCol(sheet, col, targetText) {
-  const lastRow = sheet.getLastRow();
-  const rangeValues = sheet.getRange(1,col,lastRow,1).getValues().flat();
-
-  let row;
-  for (let i = 0; rangeValues.length; i++) {
-    if (rangeValues[i] === targetText) {
-      row = i + 1;
-      return row;
-    }
-  }
-
-  return null;
-}
-
 function getRowBySingleCol(sheet, colIndex, targetText) {
   const lastRow = sheet.getLastRow();
   const rangeValues = sheet.getRange(1,colIndex,lastRow,1).getValues().flat();
@@ -219,4 +221,28 @@ function displayRequestForm(title,url,params) {
   
   const ui = SpreadsheetApp.getUi();
   ui.showModalDialog(htmlOutput,title);
+}
+
+/**
+ * メールアドレスを基に連絡先シートからSlack IDを取得します。
+ * @param {string} email 検索するメールアドレス。
+ * @returns {string|null} 見つかったSlack ID。見つからない場合はnull。
+ */
+function getSlackIdByEmail(email) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const paramSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PARAMETERS);
+  const contactSheetId = getValueRanges(CONFIG.PARAM_KEYS.CONTACT_SHEET_ID, paramSheet)[0].offset(0, 1).getValue();
+  const contactSheet = SpreadsheetApp.openById(contactSheetId).getSheetByName(CONFIG.SHEET_NAMES.PERSONS);
+  
+  const emailCol = getColByHeaderName(contactSheet, CONFIG.HEADER_NAMES_CONTACT.EMAIL);
+  const slackIdCol = getColByHeaderName(contactSheet, CONFIG.HEADER_NAMES_CONTACT.SLACK_ID);
+  
+  const emailList = contactSheet.getRange(1, emailCol, contactSheet.getLastRow(), 1).getValues().flat();
+  const contactSheetRow = emailList.indexOf(email) + 1;
+
+  if (contactSheetRow > 0) {
+    return contactSheet.getRange(contactSheetRow, slackIdCol).getValue();
+  }
+  
+  return null;
 }

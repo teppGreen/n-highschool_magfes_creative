@@ -73,13 +73,13 @@ function syncSheet_resourceToWork(sheet,row){
     }
   }
 
-  getValueRanges('依頼受付', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.request);
-  getValueRanges('初回ヒアリング', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.hearing);
-  getValueRanges('制作', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.creating);
-  getValueRanges('ブラッシュアップ', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.refining);
-  getValueRanges('班長承認', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.approval);
-  getValueRanges('納品', workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.delivery);
-  getValueRanges('納品', workSheet_tasks)[0].offset(0,2).setValue(workInfo.datetime.expected);
+  getValueRanges(CONFIG.STATUS.STEP1, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.request);
+  getValueRanges(CONFIG.STATUS.STEP2, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.hearing);
+  getValueRanges(CONFIG.STATUS.STEP3, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.creating);
+  getValueRanges(CONFIG.STATUS.STEP4, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.refining);
+  getValueRanges(CONFIG.STATUS.STEP5, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.approval);
+  getValueRanges(CONFIG.STATUS.STEP6, workSheet_tasks)[0].offset(0,1).setValue(workInfo.datetime.delivery);
+  getValueRanges(CONFIG.STATUS.STEP6, workSheet_tasks)[0].offset(0,2).setValue(workInfo.datetime.expected);
 
   const oldJoinedMembers_range = workSheet_main.getRange('C14:C41');
   const newJoinedMembers = workInfo.joinedMembers.split(',').map(item => item.trim());
@@ -120,15 +120,15 @@ function syncSheet_resourceToWork_status(e) {
   const endDatetimeCol = getColByHeaderName(workSheet_tasks, '終了日時');
   const now = new Date();
   
-  if (e.value === '納品' || e.value === '依頼取消') { 
-    workSheet_tasks.getRange(newStatusRow, statusCol).setValue('完了');
+  if (e.value === CONFIG.STATUS.STEP6 || e.value === CONFIG.STATUS.CANCELLED) { 
+    workSheet_tasks.getRange(newStatusRow, statusCol).setValue(CONFIG.TASK_STATUS.DONE);
   } else {
-    workSheet_tasks.getRange(newStatusRow, statusCol).setValue('実行中');
+    workSheet_tasks.getRange(newStatusRow, statusCol).setValue(CONFIG.TASK_STATUS.IN_PROGRESS);
   }
 
-  if (e.oldValue !== '納品済' || e.oldValue !== '依頼取消') {
+  if (e.oldValue && e.oldValue !== CONFIG.STATUS.STEP6 && e.oldValue !== CONFIG.STATUS.CANCELLED) {
     const oldStatusRow = getValueRanges(e.oldValue, workSheet_tasks)[0].getRow();
-    workSheet_tasks.getRange(oldStatusRow, statusCol).setValue('完了');
+    workSheet_tasks.getRange(oldStatusRow, statusCol).setValue(CONFIG.TASK_STATUS.DONE);
     workSheet_tasks.getRange(oldStatusRow, endDatetimeCol).setValue(now);
   }
 }

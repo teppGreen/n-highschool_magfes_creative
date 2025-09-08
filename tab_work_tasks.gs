@@ -6,7 +6,7 @@ function inputStatusChangedDatetime_work(e) {
 
   if (workSheet_active.getName() !== 'tasks' || editedHeader !== 'ステータス') return;
   
-  const statusList = ['依頼受付','初回ヒアリング','制作','ブラッシュアップ','班長承認','納品'];
+  const statusList = Object.values(CONFIG.STATUS).filter(status => status !== CONFIG.STATUS.CANCELLED);
   const editedTitleRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'タイトル'));
   const editedTitle = editedTitleRange.getValue();
   const startDatetimeRange = workSheet_active.getRange(editedRow,getColByHeaderName(workSheet_active,'開始日時'));
@@ -17,15 +17,15 @@ function inputStatusChangedDatetime_work(e) {
   
   if (!statusList.includes(editedTitle)) return;
 
-  if (e.value === '実行中' && editedTitle === '納品') {
-    e.range.setValue('完了');
+  if (e.value === CONFIG.TASK_STATUS.IN_PROGRESS && editedTitle === CONFIG.STATUS.STEP6) {
+    e.range.setValue(CONFIG.TASK_STATUS.DONE);
   }
   
-  if (((e.value === '実行中') || (e.value === '完了' && editedTitle === '納品')) && startDatetime === '') {
+  if (((e.value === CONFIG.TASK_STATUS.IN_PROGRESS) || (e.value === CONFIG.TASK_STATUS.DONE && editedTitle === CONFIG.STATUS.STEP6)) && startDatetime === '') {
     startDatetimeRange.setValue(now);
   }
 
-  if (e.value === '完了' && endDatetime === '') {
+  if (e.value === CONFIG.TASK_STATUS.DONE && endDatetime === '') {
     endDatetimeRange.setValue(now);
   }
 }
