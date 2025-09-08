@@ -98,7 +98,9 @@ function syncSheet_resourceToWork(sheet,row){
       oldJoinedMembers_range.offset(rowIndex,0,1,1).setValue(newJoinedMember);
     }
 
-    oldJoinedMembers_range.offset(rowIndex,-1,1,1).setValue(true);
+    if (newJoinedMember) {
+      oldJoinedMembers_range.offset(rowIndex,-1,1,1).setValue(true);
+    }
   }
 
   changeFileName_work(workInfo);

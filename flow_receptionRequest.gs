@@ -145,12 +145,12 @@ function determineWorkId(workSheet) {
 }
 
 function setupWorkEnvironment(paramSheet, workInfo, requestInfo) {
-  const folderUrls = createNewFolder(paramSheet, workInfo);
-  const workSheetUrl = createWorkSheet(paramSheet, folderUrls.workFolder, workInfo, requestInfo).getUrl();
+  const folders = createNewFolder(paramSheet, workInfo);
+  const workSheetUrl = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo).getUrl();
 
   return {
-    workFolder: folderUrls.workFolder.getUrl(),
-    deliveryFolder: folderUrls.deliveryFolder.getUrl(),
+    workFolder: folders.workFolder.getUrl(),
+    deliveryFolder: folders.deliveryFolder.getUrl(),
     workSheet: workSheetUrl
   };
 }
@@ -161,22 +161,21 @@ function createNewFolder(paramSheet, workInfo) {
   const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.WORK_FOLDER_URL, paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
-  let url = {};
-  url.workFolder = parentFolder.createFolder(folderName);
-  url.footageFolder = url.workFolder.createFolder(CONFIG.FOLDER_PREFIX.MATERIAL + folderName);
-  url.deliveryFolder = url.workFolder.createFolder(CONFIG.FOLDER_PREFIX.DELIVERY + folderName);
+  let folders = {};
+  folders.workFolder = parentFolder.createFolder(folderName);
+  folders.footageFolder = folders.workFolder.createFolder(CONFIG.FOLDER_PREFIX.MATERIAL + folderName);
+  folders.deliveryFolder = folders.workFolder.createFolder(CONFIG.FOLDER_PREFIX.DELIVERY + folderName);
 
   //フォーム回答の素材フォルダのショートカットの作成
   const existingFootageFolderId = extractFileId(workInfo.url.footageFolder);
   if (existingFootageFolderId) {
-    url.footageFolder.createShortcut(existingFootageFolderId);
+    folders.footageFolder.createShortcut(existingFootageFolderId);
   }
 
-  return url;
+  return folders;
 }
 
 function createWorkSheet(paramSheet, folder, workInfo, requestInfo) {
-  folder = DriveApp.getFolderById(extractFileId(folder));
   const sheetName = CONFIG.FOLDER_PREFIX.WORKSHEET + workInfo.projId + String(workInfo.workId).padStart(4,'0') + '_' + workInfo.projTitle + '_' + workInfo.workTitle;
   const parentSheetId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_URL, paramSheet)[0].offset(0,1).getValue();
   const sheet = DriveApp.getFileById(parentSheetId).makeCopy(sheetName,folder);
