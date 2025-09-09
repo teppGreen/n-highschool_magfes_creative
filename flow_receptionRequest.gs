@@ -36,25 +36,19 @@ function sendNotificationToSlack_fromResourceSheet() {
 function receptionRequest(formRow) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const workSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.WORKS);
-  const formSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.FORM);
   const projSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PROJECTS);
   const paramSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PARAMETERS);
 
-  const formResponse = formSheet.getRange(formRow, 1, 1, formSheet.getLastColumn()).getValues().flat();
-  
-  const { workInfo, requestInfo } = formatFormResponse(formResponse);
+  const { workInfo, requestInfo } = getFormattedFormResponse(ss, formRow);
 
-  workInfo.projId = findOrCreateProjectId(projSheet, workInfo.projTitle);
+  setProjectId(projSheet, workInfo);
 
-  const { workId, workSheetRow } = determineWorkId(workSheet);
-  workInfo.workId = workId;
+  const workSheetRow = setWorkId(workSheet, workInfo);
   
   const urls = setupWorkEnvironment(paramSheet, workInfo, requestInfo);
-  workInfo.url.workFolder = urls.workFolder;
-  workInfo.url.deliveryFolder = urls.deliveryFolder;
-  workInfo.url.workSheet = urls.workSheet;
+  Object.assign(workInfo.url, urls);
 
-  writeResponseToSheet_resource(projSheet,workSheet,workSheetRow,workInfo);
+  writeResponseToSheet_resource(workSheet,workSheetRow,workInfo);
 
   try {
     writeResponseToSheet_work(workInfo,requestInfo);
@@ -70,6 +64,22 @@ function receptionRequest(formRow) {
   // }
   
   processSystemCommand(requestInfo);
+}
+
+function getFormattedFormResponse(ss, formRow) {
+  const formSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.FORM);
+  const formResponse = formSheet.getRange(formRow, 1, 1, formSheet.getLastColumn()).getValues().flat();
+  return formatFormResponse(formResponse);
+}
+
+function setProjectId(projSheet, workInfo) {
+  workInfo.projId = findOrCreateProjectId(projSheet, workInfo.projTitle);
+}
+
+function setWorkId(workSheet, workInfo) {
+  const { workId, workSheetRow } = determineWorkId(workSheet);
+  workInfo.workId = workId;
+  return workSheetRow;
 }
 
 function formatFormResponse(formResponse) {
@@ -157,7 +167,7 @@ function setupWorkEnvironment(paramSheet, workInfo, requestInfo) {
 
 function createNewFolder(paramSheet, workInfo) {
   const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
-  const folderName = `${systemStartYear}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
+  const folderName = `${String(systemStartYear).slice(-2)}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.WORK_FOLDER_URL, paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
@@ -183,7 +193,7 @@ function createWorkSheet(paramSheet, folder, workInfo, requestInfo) {
   return sheet;
 }
 
-function writeResponseToSheet_resource(projSheet, workSheet, workSheetRow, workInfo) {
+function writeResponseToSheet_resource(workSheet, workSheetRow, workInfo) {
   const range = getRangesByHeaderNames(workSheet, workSheetRow, headerNames_work);
 
   function processObject(obj,obj2) {
