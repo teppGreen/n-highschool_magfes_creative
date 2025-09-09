@@ -44,10 +44,8 @@ function syncSheet_resourceToWork(sheet,row){
   const workSheet_tasks = workSheet.getSheetByName('tasks');
   
   getValueRanges('管理番号', workSheet_main)[0].offset(0,1).setValue(workInfo.manageId);
-  getValueRanges('管理番号', workSheet_main)[0].offset(0,3).setValue(workInfo.projId);
-  getValueRanges('管理番号', workSheet_main)[0].offset(0,2).setValue(workInfo.workId);
-  getValueRanges('タイトル', workSheet_main)[0].offset(0,3).setValue(workInfo.projTitle);
-  getValueRanges('タイトル', workSheet_main)[0].offset(0,2).setValue(workInfo.workTitle);
+  getValueRanges('制作タイトル', workSheet_main)[0].offset(0,1).setValue(workInfo.workTitle);
+  getValueRanges('案件タイトル', workSheet_main)[0].offset(0,1).setValue(workInfo.projTitle);
   getValueRanges('ジャンル', workSheet_main)[0].offset(0,2).setValue(workInfo.genre);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,2).setValue(workInfo.client.nickname);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);

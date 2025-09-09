@@ -38,8 +38,9 @@ function receptionRequest(formRow) {
   const workSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.WORKS);
   const projSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PROJECTS);
   const paramSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.PARAMETERS);
+  const formSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.FORM);
 
-  const { workInfo, requestInfo } = getFormattedFormResponse(ss, formRow);
+  const { workInfo, requestInfo } = getFormattedFormResponse(formSheet, formRow);
 
   setProjectId(projSheet, workInfo);
 
@@ -66,8 +67,7 @@ function receptionRequest(formRow) {
   processSystemCommand(requestInfo);
 }
 
-function getFormattedFormResponse(ss, formRow) {
-  const formSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.FORM);
+function getFormattedFormResponse(formSheet, formRow) {
   const formResponse = formSheet.getRange(formRow, 1, 1, formSheet.getLastColumn()).getValues().flat();
   return formatFormResponse(formResponse);
 }
@@ -185,8 +185,8 @@ function createNewFolder(paramSheet, workInfo) {
   return folders;
 }
 
-function createWorkSheet(paramSheet, folder, workInfo, requestInfo) {
-  const sheetName = CONFIG.FOLDER_PREFIX.WORKSHEET + workInfo.projId + String(workInfo.workId).padStart(4,'0') + '_' + workInfo.projTitle + '_' + workInfo.workTitle;
+function createWorkSheet(paramSheet, folder, workInfo) {
+  const sheetName = `${CONFIG.FOLDER_PREFIX.WORKSHEET}${String(systemStartYear).slice(-2)}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentSheetId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_URL, paramSheet)[0].offset(0,1).getValue();
   const sheet = DriveApp.getFileById(parentSheetId).makeCopy(sheetName,folder);
   
