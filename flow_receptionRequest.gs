@@ -42,13 +42,9 @@ function receptionRequest(formRow) {
 
   const { workInfo, requestInfo } = getFormattedFormResponse(formSheet, formRow);
 
-  setProjectId(projSheet, workInfo);
-
   const workSheetRow = setWorkId(workSheet, workInfo);
-  
-  const urls = setupWorkEnvironment(paramSheet, workInfo, requestInfo);
-  Object.assign(workInfo.url, urls);
-
+  setupProjEnvironment(paramSheet, projSheet, workInfo)
+  setupWorkEnvironment(paramSheet, requestInfo, workInfo);
   writeResponseToSheet_resource(workSheet,workSheetRow,workInfo);
 
   try {
@@ -58,11 +54,7 @@ function receptionRequest(formRow) {
     console.error('Continue error: ' + error.stack);
   }
 
-  // try {
-  //   sendNotificationToSlack(workInfo,requestInfo);
-  // } catch(error) {
-  //   notifyError(error);
-  // }
+  // sendNotificationToSlack(workInfo,requestInfo);
   
   processSystemCommand(requestInfo);
 }
@@ -70,16 +62,6 @@ function receptionRequest(formRow) {
 function getFormattedFormResponse(formSheet, formRow) {
   const formResponse = formSheet.getRange(formRow, 1, 1, formSheet.getLastColumn()).getValues().flat();
   return formatFormResponse(formResponse);
-}
-
-function setProjectId(projSheet, workInfo) {
-  workInfo.projId = findOrCreateProjectId(projSheet, workInfo.projTitle);
-}
-
-function setWorkId(workSheet, workInfo) {
-  const { workId, workSheetRow } = determineWorkId(workSheet);
-  workInfo.workId = workId;
-  return workSheetRow;
 }
 
 function formatFormResponse(formResponse) {
@@ -107,30 +89,10 @@ function formatFormResponse(formResponse) {
   return { workInfo, requestInfo };
 }
 
-function findOrCreateProjectId(projSheet, projTitle) {
-  const projIdCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_ID);
-  const projTitleCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_TITLE);
-  
-  let projSheetRow = projSheet.getRange(1, projTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
-  if (projSheetRow === projSheet.getMaxRows() + 1) {
-    projSheetRow = 2;
-  }
-  
-  const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
-  const projTitleIndex = projTitles.indexOf(projTitle);
-  
-  let projId;
-  if (projTitleIndex < 0) {
-    // 新しい案件の場合
-    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
-    projSheet.getRange(projSheetRow, projTitleCol).setValue(projTitle);
-  } else {
-    // 既存の案件の場合
-    projSheetRow = projTitleIndex + 1;
-    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
-  }
-  
-  return projId;
+function setWorkId(workSheet, workInfo) {
+  const { workId, workSheetRow } = determineWorkId(workSheet);
+  workInfo.workId = workId;
+  return workSheetRow;
 }
 
 function determineWorkId(workSheet) {
@@ -154,27 +116,97 @@ function determineWorkId(workSheet) {
   return { workId, workSheetRow };
 }
 
-function setupWorkEnvironment(paramSheet, workInfo, requestInfo) {
-  const folders = createNewFolder(paramSheet, workInfo);
-  const workSheetUrl = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo).getUrl();
+// ここから案件関連の処理
 
-  return {
-    workFolder: folders.workFolder.getUrl(),
-    deliveryFolder: folders.deliveryFolder.getUrl(),
-    workSheet: workSheetUrl
-  };
+function setupProjEnvironment(paramSheet, projSheet, workInfo) {
+  const [isProjectIdExists, projSheetRow] = setProjectId(projSheet, workInfo);
+
+  if (isProjectIdExists) {
+    const folderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
+    const folderId = extractFileId(folderUrl);
+    workInfo.url.projFolder = DriveApp.getFolderById(folderId);
+
+    const docUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
+    const docId = extractFileId(docUrl);
+    workInfo.url.projDoc = DriveApp.getFolderById(docId);
+  } else {
+    workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo);
+    workInfo.url.projDoc = createProjDoc(paramSheet, workInfo);
+  }
 }
 
-function createNewFolder(paramSheet, workInfo) {
+function setProjectId(projSheet, workInfo) {
+  const projTitle = workInfo.projTitle
+  const projIdCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_ID);
+  const projTitleCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_TITLE);
+  let exists;
+  
+  let projSheetRow = projSheet.getRange(1, projTitleCol).getNextDataCell(SpreadsheetApp.Direction.DOWN).getRow() + 1;
+  if (projSheetRow === projSheet.getMaxRows() + 1) {
+    projSheetRow = 2;
+  }
+  
+  const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
+  const projTitleIndex = projTitles.indexOf(projTitle);
+  
+  let projId;
+  if (projTitleIndex < 0) {
+    // 新しい案件の場合
+    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
+    projSheet.getRange(projSheetRow, projTitleCol).setValue(projTitle);
+    exists = false;
+  } else {
+    // 既存の案件の場合
+    projSheetRow = projTitleIndex + 1;
+    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
+    exists = true;
+  }
+  
+  workInfo.projId = projId;
+  return [exists, projSheetRow];
+}
+
+function createNewFolder_proj(paramSheet, workInfo) {
+
+  const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
+  const folderName = `${String(systemStartYear).slice(-2)}-${workInfo.projId}_${workInfo.projTitle}`;
+  const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.PROJ_FOLDER_ID, paramSheet)[0].offset(0,1).getValue();
+  const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
+  
+  const folder = parentFolder.createFolder(folderName);
+  return folder;
+}
+
+function createProjDoc(paramSheet, workInfo) {
+  const fileName = `${CONFIG.NAME_PREFIX.PROJDOC}${String(systemStartYear).slice(-2)}-${workInfo.projId}_${workInfo.projTitle}`;
+  const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.PROJ_DOC_ID, paramSheet)[0].offset(0,1).getValue();
+  const file = DriveApp.getFileById(parentFileId).makeCopy(fileName, workInfo.url.projFolder);
+  
+  return file;
+}
+
+// ここまで案件関連の処理
+
+// ここから制作関連の処理
+function setupWorkEnvironment(paramSheet, requestInfo, workInfo) {
+  const folders = createNewFolder_work(paramSheet, workInfo);
+  const workSheet = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo);
+
+  workInfo.url.workFolder = folders.workFolder.getUrl();
+  workInfo.url.deliveryFolder = folders.deliveryFolder.getUrl();
+  workInfo.url.workSheet = workSheet.getUrl();
+}
+
+function createNewFolder_work(paramSheet, workInfo) {
   const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
   const folderName = `${String(systemStartYear).slice(-2)}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
-  const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.WORK_FOLDER_URL, paramSheet)[0].offset(0,1).getValue();
+  const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.WORK_FOLDER_ID, paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
   let folders = {};
   folders.workFolder = parentFolder.createFolder(folderName);
-  folders.footageFolder = folders.workFolder.createFolder(CONFIG.FOLDER_PREFIX.MATERIAL + folderName);
-  folders.deliveryFolder = folders.workFolder.createFolder(CONFIG.FOLDER_PREFIX.DELIVERY + folderName);
+  folders.footageFolder = folders.workFolder.createFolder(CONFIG.NAME_PREFIX.MATERIAL + folderName);
+  folders.deliveryFolder = folders.workFolder.createFolder(CONFIG.NAME_PREFIX.DELIVERY + folderName);
 
   //フォーム回答の素材フォルダのショートカットの作成
   const existingFootageFolderId = extractFileId(workInfo.url.footageFolder);
@@ -182,15 +214,22 @@ function createNewFolder(paramSheet, workInfo) {
     folders.footageFolder.createShortcut(existingFootageFolderId);
   }
 
+  // 案件フォルダにショートカットを作成
+  const projFolderId = extractFileId(workInfo.url.projFolder);
+  if (projFolderId) {
+    const folderName_shortcut =`${workInfo.workId}_${workInfo.workTitle}`;
+    folders.workFolder.createShortcut(projFolderId).setName(folderName_shortcut);
+  }
+
   return folders;
 }
 
 function createWorkSheet(paramSheet, folder, workInfo) {
-  const sheetName = `${CONFIG.FOLDER_PREFIX.WORKSHEET}${String(systemStartYear).slice(-2)}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
-  const parentSheetId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_URL, paramSheet)[0].offset(0,1).getValue();
-  const sheet = DriveApp.getFileById(parentSheetId).makeCopy(sheetName,folder);
+  const fileName = `${CONFIG.FILE_PREFIX.WORKSHEET}${String(systemStartYear).slice(-2)}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
+  const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_ID, paramSheet)[0].offset(0,1).getValue();
+  const file = DriveApp.getFileById(parentFileId).makeCopy(fileName,folder);
   
-  return sheet;
+  return file;
 }
 
 function writeResponseToSheet_resource(workSheet, workSheetRow, workInfo) {
@@ -333,6 +372,10 @@ function sendNotificationToSlack(workInfo,requestInfo) {
     })
   };
 
-  const res = UrlFetchApp.fetch(token, params);
-  console.log(res);
+  try {
+    const res = UrlFetchApp.fetch(token, params);
+    console.log(res);
+  } catch(error) {
+    notifyError(error);
+  }
 }

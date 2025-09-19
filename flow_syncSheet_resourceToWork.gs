@@ -49,7 +49,6 @@ function syncSheet_resourceToWork(sheet,row){
   getValueRanges('ジャンル', workSheet_main)[0].offset(0,2).setValue(workInfo.genre);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,2).setValue(workInfo.client.nickname);
   getValueRanges('依頼者', workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);
-  getValueRanges('依頼者メアド', workSheet_main)[0].offset(0,2).setValue(workInfo.client.email);
 
   getValueRanges('制作アプリ', workSheet_main)[0].offset(0,1).setValue(workInfo.review.usedApp);
   getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
@@ -61,7 +60,7 @@ function syncSheet_resourceToWork(sheet,row){
   const generalSheetRichtext = SpreadsheetApp.newRichTextValue().setText(generalSheetLabel).setLinkUrl(generalSheetUrl).build();
   getValueRanges(generalSheetLabel, workSheet_main)[0].setRichTextValue(generalSheetRichtext);
 
-  const urlLabels = ['制作フォルダ','納品フォルダ','Canva フォルダ','Slack チャンネル','Slack スレッド'];
+  const urlLabels = ['制作フォルダ','納品フォルダ','Canva フォルダ','Slack チャンネル','Slack スレッド','案件ドキュメント','案件フォルダ'];
   for (let key in workInfo.url) {
     const urlIndex = urlLabels.indexOf(headerNames_work['url'][key]);
     if (urlIndex >= 0) {

@@ -41,15 +41,25 @@ function integrityProjIdAndTitle(e) {
 
   if (sheet.getName() === 'works') {
     if (editedHeader === '案件番号') {
-      ss.toast('案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号が${e.oldValue}→${e.value}に変更されました`,-1);
-      const projIdIndex = projIds_projects.indexOf(e.value);
-      const projTitle = projTitles_projects[projIdIndex];
-      sheet_works.getRange(e.range.getRow(), projTitleColumn_works).setValue(projTitle);
-      ss.toast('案件番号・案件タイトルの変更が完了しました');
+      if (e.value) {
+        ss.toast('案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号が${e.oldValue}→${e.value}に変更されました`,-1);
+        const projIdIndex = projIds_projects.indexOf(e.value);
+        const projTitle = projTitles_projects[projIdIndex];
+        sheet_works.getRange(e.range.getRow(), projTitleColumn_works).setValue(projTitle);
+        ss.toast('案件番号・案件タイトルの変更が完了しました');
+      } else {
+        ss.toast('処理を中断しました');
+        ui.alert('案件番号は削除できません',
+          `案件を変更したい場合は、${CONFIG.SHEET_NAMES.PROJECTS}タブに記載されている該当の案件番号に変更してください。\n` + 
+          `新しい案件を作成したい場合は、未使用の案件番号を指定した上で、案件タイトルを設定してください。`,
+          ui.ButtonSet.OK);
+        e.range.setValue(e.oldValue);
+      }
     }
 
     if (editedHeader === '案件タイトル') {
       const projId = sheet_works.getRange(e.range.getRow(), projIdColumn_works).getValue();
+      
       ss.toast('他の制作物の案件タイトルは自動で変更されます。そのままお待ちください。',`案件番号${projId}のタイトルが変更されました`,-1);
 
       let duplicationProjId;
@@ -110,6 +120,13 @@ function integrityProjIdAndTitle(e) {
         }
         ss.toast('案件タイトルの変更が完了しました');
       }
+    }
+    if (editedHeader === '案件番号') {
+      ss.toast('処理を中断しました');
+      ui.alert('案件番号は削除・変更できません',
+        `制作物の案件番号を変更したい場合は、${CONFIG.SHEET_NAMES.WORKS}タブから変更してください。`,
+        ui.ButtonSet.OK);
+      e.range.setValue(e.oldValue);
     }
   }
 }

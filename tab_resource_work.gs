@@ -30,7 +30,9 @@ const headerNames_work = { //リソース管理シート workタブの各列の�
     deliveryFolder: '納品フォルダ',
     canvaFolder: 'Canva フォルダ',
     slackChannel: 'Slack チャンネル',
-    slackThread: 'Slack スレッド'
+    slackThread: 'Slack スレッド',
+    projDoc: '案件ドキュメント',
+    projFolder: '案件フォルダ'
   },
 
   joinedMembers: '担当者',
@@ -48,7 +50,7 @@ function changeFileName_work(workInfo) {
 
   if (workInfo.url.workSheet) {
     const fileId = extractFileId(workInfo.url.workSheet);
-    DriveApp.getFileById(fileId).setName(`${CONFIG.FOLDER_PREFIX.WORKSHEET}${manageId[0]}-${manageId[1]}_${workInfo.projTitle}_${workInfo.workTitle}`);
+    DriveApp.getFileById(fileId).setName(`${CONFIG.NAME_PREFIX.WORKSHEET}${manageId[0]}-${manageId[1]}_${workInfo.projTitle}_${workInfo.workTitle}`);
   }
 
   if (workInfo.url.workFolder) {
