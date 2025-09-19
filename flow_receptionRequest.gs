@@ -47,7 +47,7 @@ function receptionRequest(formRow) {
 
   const workSheetRow = setWorkId(workSheet, workInfo);
   setupProjEnvironment(paramSheet, projSheet, workInfo, yearId)
-  setupWorkEnvironment(paramSheet, requestInfo, workInfo, yearId);
+  setupWorkEnvironment(paramSheet, workInfo, yearId);
   writeResponseToSheet_resource(workSheet,workSheetRow,workInfo);
 
   try {
@@ -125,22 +125,14 @@ function setupProjEnvironment(paramSheet, projSheet, workInfo, yearId) {
   const [isProjectIdExists, projSheetRow] = setProjectId(projSheet, workInfo);
 
   if (isProjectIdExists) {
-    const folderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
-    if (folderUrl) {
-      const folderId = extractFileId(folderUrl);
-      workInfo.url.projFolder = DriveApp.getFolderById(folderId);
-      
-      const docUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
-      const docId = extractFileId(docUrl);
-      workInfo.url.projDoc = DriveApp.getFolderById(docId);
-      
-      return;
-    }
+    const projFolderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
+      if (projFolderUrl) workInfo.url.projFolder = projFolderUrl;
+    const projDocUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
+      if (projDocUrl) workInfo.url.projDoc = projDocUrl;
+  } else {
+    workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo, yearId).getUrl();
+    workInfo.url.projDoc = createProjDoc(paramSheet, workInfo, yearId).getUrl();
   }
-  
-  workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo, yearId);
-  workInfo.url.projDoc = createProjDoc(paramSheet, workInfo, yearId);
-  
 }
 
 function setProjectId(projSheet, workInfo) {
@@ -194,9 +186,9 @@ function createProjDoc(paramSheet, workInfo, yearId) {
 // ここまで案件関連の処理
 
 // ここから制作関連の処理
-function setupWorkEnvironment(paramSheet, requestInfo, workInfo, yearId) {
+function setupWorkEnvironment(paramSheet, workInfo, yearId) {
   const folders = createNewFolder_work(paramSheet, workInfo, yearId);
-  const workSheet = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo, yearId);
+  const workSheet = createWorkSheet(paramSheet, folders.workFolder, workInfo, yearId);
 
   workInfo.url.workFolder = folders.workFolder.getUrl();
   workInfo.url.deliveryFolder = folders.deliveryFolder.getUrl();
@@ -243,7 +235,7 @@ function writeResponseToSheet_resource(workSheet, workSheetRow, workInfo) {
   function processObject(obj,obj2) {
     for (let key in obj) {
       if (typeof obj[key] === 'object' && obj2[key]) {
-        if (obj[key].getA1Notation()) {
+        if (obj[key].getA1Notation) {
           obj[key].setValue(obj2[key]);
         } else {
           processObject(obj[key],obj2[key]); // ネストされたオブジェクトを再帰的に処理
