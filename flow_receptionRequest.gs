@@ -123,14 +123,22 @@ function determineWorkId(workSheet) {
 
 function setupProjEnvironment(paramSheet, projSheet, workInfo, yearId) {
   const [isProjectIdExists, projSheetRow] = setProjectId(projSheet, workInfo);
+  let projFolderUrl, projDocUrl;
 
   if (isProjectIdExists) {
-    const projFolderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
-      if (projFolderUrl) workInfo.url.projFolder = projFolderUrl;
-    const projDocUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
-      if (projDocUrl) workInfo.url.projDoc = projDocUrl;
+    projFolderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
+    projDocUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
+  }
+  
+  if (projFolderUrl) {
+    workInfo.url.projFolder = projFolderUrl;
   } else {
     workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo, yearId).getUrl();
+  }
+
+  if (projDocUrl) {
+    workInfo.url.projDoc = projDocUrl;
+  } else {
     workInfo.url.projDoc = createProjDoc(paramSheet, workInfo, yearId).getUrl();
   }
 
