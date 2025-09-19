@@ -230,7 +230,7 @@ function createNewFolder_work(paramSheet, workInfo, yearId) {
 }
 
 function createWorkSheet(paramSheet, folder, workInfo, yearId) {
-  const fileName = `${CONFIG.FILE_PREFIX.WORKSHEET}${yearId}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
+  const fileName = `${CONFIG.NAME_PREFIX.WORKSHEET}${yearId}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_ID, paramSheet)[0].offset(0,1).getValue();
   const file = DriveApp.getFileById(parentFileId).makeCopy(fileName,folder);
   
