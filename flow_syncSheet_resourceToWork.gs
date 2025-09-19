@@ -4,8 +4,8 @@ function syncSheet_resourceToWork_temp() {
   const ui = SpreadsheetApp.getUi();
   ui.showModalDialog(startProcessingAnimation, "処理中");
 
-  if (currentSheetName !== 'works') {
-    const formSheet = ss.getSheetByName('works');
+  if (currentSheetName !== CONFIG.SHEET_NAMES.WORKS) {
+    const formSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.WORKS);
     formSheet.getRange(2,1).activateAsCurrentCell();
     SpreadsheetApp.flush();
   }
@@ -13,8 +13,8 @@ function syncSheet_resourceToWork_temp() {
   const prompt = ui.prompt('リソース→制作管理シート 同期（手動）','該当の制作番号を入力してください。',ui.ButtonSet.OK_CANCEL);
 
   if (prompt.getSelectedButton() === ui.Button.OK) {
-    const workSheet = ss.getSheetByName('works');
-    const workIdCol = getColByHeaderName(workSheet,'制作番号');
+    const workSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.WORKS);
+    const workIdCol = getColByHeaderName(workSheet, CONFIG.HEADER_NAMES.WORK_ID);
     const workId = Number(prompt.getResponseText());
     const row = getRowBySingleCol(workSheet, workIdCol, workId);
     if (row > 1) {
@@ -40,19 +40,19 @@ function syncSheet_resourceToWork(sheet,row){
   }
 
   const workSheet = SpreadsheetApp.openByUrl(workSheetUrl);
-  const workSheet_main = workSheet.getSheetByName('main');
-  const workSheet_tasks = workSheet.getSheetByName('tasks');
+  const workSheet_main = workSheet.getSheetByName(CONFIG.SHEET_NAMES.MAIN);
+  const workSheet_tasks = workSheet.getSheetByName(CONFIG.SHEET_NAMES.TASKS);
   
-  getValueRanges('管理番号', workSheet_main)[0].offset(0,1).setValue(workInfo.manageId);
-  getValueRanges('制作タイトル', workSheet_main)[0].offset(0,2).setValue(workInfo.workTitle);
-  getValueRanges('案件タイトル', workSheet_main)[0].offset(0,2).setValue(workInfo.projTitle);
-  getValueRanges('ジャンル', workSheet_main)[0].offset(0,2).setValue(workInfo.genre);
-  getValueRanges('依頼者', workSheet_main)[0].offset(0,2).setValue(workInfo.client.nickname);
-  getValueRanges('依頼者', workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);
+  getValueRanges(CONFIG.HEADER_MANAGE_ID, workSheet_main)[0].offset(0,1).setValue(workInfo.manageId);
+  getValueRanges(CONFIG.HEADER_NAMES.WORK_TITLE, workSheet_main)[0].offset(0,2).setValue(workInfo.workTitle);
+  getValueRanges(CONFIG.HEADER_NAMES.PROJECT_TITLE, workSheet_main)[0].offset(0,2).setValue(workInfo.projTitle);
+  getValueRanges(CONFIG.HEADER_NAMES.WORK_GENRE, workSheet_main)[0].offset(0,2).setValue(workInfo.genre);
+  getValueRanges(CONFIG.HEADER_NAMES.CLIENT, workSheet_main)[0].offset(0,2).setValue(workInfo.client.nickname);
+  getValueRanges(CONFIG.HEADER_NAMES.CLIENT, workSheet_main)[0].offset(0,3).setValue(workInfo.client.department);
 
-  getValueRanges('制作アプリ', workSheet_main)[0].offset(0,1).setValue(workInfo.review.usedApp);
-  getValueRanges('成果物数', workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
-  getValueRanges('来年も作るべきか', workSheet_main)[0].offset(0,1).setValue(workInfo.review.willMakeNextYear);
+  getValueRanges(CONFIG.HEADER_NAMES.USED_TOOLS, workSheet_main)[0].offset(0,1).setValue(workInfo.review.usedApp);
+  getValueRanges(CONFIG.HEADER_NAMES.DELIVERY_COUNT, workSheet_main)[0].offset(0,1).setValue(workInfo.review.deliverablesCount);
+  getValueRanges(CONFIG.HEADER_NAMES.WILL_MAKE_NEXT, workSheet_main)[0].offset(0,1).setValue(workInfo.review.willMakeNextYear);
 
   
   const generalSheetLabel = 'リソース管理シート';
