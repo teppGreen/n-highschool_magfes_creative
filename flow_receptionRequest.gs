@@ -42,9 +42,12 @@ function receptionRequest(formRow) {
 
   const { workInfo, requestInfo } = getFormattedFormResponse(formSheet, formRow);
 
+  const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
+  const yearId = String(systemStartYear).slice(-2);
+
   const workSheetRow = setWorkId(workSheet, workInfo);
-  setupProjEnvironment(paramSheet, projSheet, workInfo)
-  setupWorkEnvironment(paramSheet, requestInfo, workInfo);
+  setupProjEnvironment(paramSheet, projSheet, workInfo, yearId)
+  setupWorkEnvironment(paramSheet, requestInfo, workInfo, yearId);
   writeResponseToSheet_resource(workSheet,workSheetRow,workInfo);
 
   try {
@@ -118,7 +121,7 @@ function determineWorkId(workSheet) {
 
 // ここから案件関連の処理
 
-function setupProjEnvironment(paramSheet, projSheet, workInfo) {
+function setupProjEnvironment(paramSheet, projSheet, workInfo, yearId) {
   const [isProjectIdExists, projSheetRow] = setProjectId(projSheet, workInfo);
 
   if (isProjectIdExists) {
@@ -135,8 +138,8 @@ function setupProjEnvironment(paramSheet, projSheet, workInfo) {
     }
   }
   
-  workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo);
-  workInfo.url.projDoc = createProjDoc(paramSheet, workInfo);
+  workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo, yearId);
+  workInfo.url.projDoc = createProjDoc(paramSheet, workInfo, yearId);
   
 }
 
@@ -171,10 +174,8 @@ function setProjectId(projSheet, workInfo) {
   return [exists, projSheetRow];
 }
 
-function createNewFolder_proj(paramSheet, workInfo) {
-
-  const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
-  const folderName = `${String(systemStartYear).slice(-2)}-${workInfo.projId}_${workInfo.projTitle}`;
+function createNewFolder_proj(paramSheet, workInfo, yearId) {
+  const folderName = `${yearId}-${workInfo.projId}_${workInfo.projTitle}`;
   const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.PROJ_FOLDER_ID, paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
@@ -182,8 +183,8 @@ function createNewFolder_proj(paramSheet, workInfo) {
   return folder;
 }
 
-function createProjDoc(paramSheet, workInfo) {
-  const fileName = `${CONFIG.NAME_PREFIX.PROJDOC}${String(systemStartYear).slice(-2)}-${workInfo.projId}_${workInfo.projTitle}`;
+function createProjDoc(paramSheet, workInfo, yearId) {
+  const fileName = `${CONFIG.NAME_PREFIX.PROJDOC}${yearId}-${workInfo.projId}_${workInfo.projTitle}`;
   const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.PROJ_DOC_ID, paramSheet)[0].offset(0,1).getValue();
   const file = DriveApp.getFileById(parentFileId).makeCopy(fileName, workInfo.url.projFolder);
   
@@ -193,18 +194,17 @@ function createProjDoc(paramSheet, workInfo) {
 // ここまで案件関連の処理
 
 // ここから制作関連の処理
-function setupWorkEnvironment(paramSheet, requestInfo, workInfo) {
-  const folders = createNewFolder_work(paramSheet, workInfo);
-  const workSheet = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo);
+function setupWorkEnvironment(paramSheet, requestInfo, workInfo, yearId) {
+  const folders = createNewFolder_work(paramSheet, workInfo, yearId);
+  const workSheet = createWorkSheet(paramSheet, folders.workFolder, workInfo, requestInfo, yearId);
 
   workInfo.url.workFolder = folders.workFolder.getUrl();
   workInfo.url.deliveryFolder = folders.deliveryFolder.getUrl();
   workInfo.url.workSheet = workSheet.getUrl();
 }
 
-function createNewFolder_work(paramSheet, workInfo) {
-  const systemStartYear = getValueRanges(CONFIG.PARAM_KEYS.SYSTEM_START_YEAR, paramSheet)[0].offset(0,1).getValue();
-  const folderName = `${String(systemStartYear).slice(-2)}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
+function createNewFolder_work(paramSheet, workInfo, yearId) {
+  const folderName = `${yearId}-${String(workInfo.workId).padStart(4,"0")}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFolderId = getValueRanges(CONFIG.PARAM_KEYS.WORK_FOLDER_ID, paramSheet)[0].offset(0,1).getValue();
   const parentFolder = DriveApp.getFolderById(parentFolderId); //親フォルダを指定します
   
@@ -229,8 +229,8 @@ function createNewFolder_work(paramSheet, workInfo) {
   return folders;
 }
 
-function createWorkSheet(paramSheet, folder, workInfo) {
-  const fileName = `${CONFIG.FILE_PREFIX.WORKSHEET}${String(systemStartYear).slice(-2)}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
+function createWorkSheet(paramSheet, folder, workInfo, yearId) {
+  const fileName = `${CONFIG.FILE_PREFIX.WORKSHEET}${yearId}-${workInfo.projId}-${String(workInfo.workId).padStart(4,'0')}_${workInfo.projTitle}_${workInfo.workTitle}`;
   const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.WORK_SHEET_ID, paramSheet)[0].offset(0,1).getValue();
   const file = DriveApp.getFileById(parentFileId).makeCopy(fileName,folder);
   
