@@ -243,7 +243,7 @@ function writeResponseToSheet_resource(workSheet, workSheetRow, workInfo) {
   function processObject(obj,obj2) {
     for (let key in obj) {
       if (typeof obj[key] === 'object' && obj2[key]) {
-        if (obj[key].getA1Notation) {
+        if (obj[key].getA1Notation()) {
           obj[key].setValue(obj2[key]);
         } else {
           processObject(obj[key],obj2[key]); // ネストされたオブジェクトを再帰的に処理
