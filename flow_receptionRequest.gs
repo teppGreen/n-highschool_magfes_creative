@@ -133,10 +133,11 @@ function setupProjEnvironment(paramSheet, projSheet, workInfo, yearId) {
     workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo, yearId).getUrl();
     workInfo.url.projDoc = createProjDoc(paramSheet, workInfo, yearId).getUrl();
   }
+
+  writeResponseToSheet_proj(projSheet, projSheetRow, workInfo);
 }
 
 function setProjectId(projSheet, workInfo) {
-  const projTitle = workInfo.projTitle
   const projIdCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_ID);
   const projTitleCol = getColByHeaderName(projSheet, CONFIG.HEADER_NAMES.PROJECT_TITLE);
   let exists;
@@ -147,18 +148,16 @@ function setProjectId(projSheet, workInfo) {
   }
   
   const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
-  const projTitleIndex = projTitles.indexOf(projTitle);
+  const projTitleIndex = projTitles.indexOf(workInfo.projTitle);
   
   let projId;
   if (projTitleIndex < 0) {
     // 新しい案件の場合
     projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
-    projSheet.getRange(projSheetRow, projTitleCol).setValue(projTitle);
     exists = false;
   } else {
     // 既存の案件の場合
     projSheetRow = projTitleIndex + 1;
-    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
     exists = true;
   }
   
@@ -181,6 +180,12 @@ function createProjDoc(paramSheet, workInfo, yearId) {
   const file = DriveApp.getFileById(parentFileId).makeCopy(fileName, workInfo.url.projFolder);
   
   return file;
+}
+
+function writeResponseToSheet_proj(sheet, row, workInfo) {
+  sheet.getRange(row, getColByHeaderName(sheet, CONFIG.HEADER_NAMES.PROJECT_TITLE)).setValue(workInfo.projTitle);
+  sheet.getRange(row, getColByHeaderName(sheet, CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).setValue(workInfo.url.projDoc);
+  sheet.getRange(row, getColByHeaderName(sheet, CONFIG.HEADER_NAMES.PROJECT_FOLDER)).setValue(workInfo.url.projFolder);
 }
 
 // ここまで案件関連の処理

@@ -52,6 +52,7 @@ function onEditFunctions(e) {
     console.log(`▼${arguments.callee.name}`);
     console.log('User: ' + e.user.getEmail());
     
+    updateProjLinks(e);
     integrityProjIdAndTitle(e);
     syncSheet_resourceToWork_status(e);
     inputStatusChangedDatetime_resource(e);
