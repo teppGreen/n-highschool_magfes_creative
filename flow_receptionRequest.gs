@@ -123,16 +123,21 @@ function setupProjEnvironment(paramSheet, projSheet, workInfo) {
 
   if (isProjectIdExists) {
     const folderUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_FOLDER)).getValue();
-    const folderId = extractFileId(folderUrl);
-    workInfo.url.projFolder = DriveApp.getFolderById(folderId);
-
-    const docUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
-    const docId = extractFileId(docUrl);
-    workInfo.url.projDoc = DriveApp.getFolderById(docId);
-  } else {
-    workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo);
-    workInfo.url.projDoc = createProjDoc(paramSheet, workInfo);
+    if (folderUrl) {
+      const folderId = extractFileId(folderUrl);
+      workInfo.url.projFolder = DriveApp.getFolderById(folderId);
+      
+      const docUrl = projSheet.getRange(projSheetRow,getColByHeaderName(projSheet,CONFIG.HEADER_NAMES.PROJECT_DOCUMENT)).getValue();
+      const docId = extractFileId(docUrl);
+      workInfo.url.projDoc = DriveApp.getFolderById(docId);
+      
+      return;
+    }
   }
+  
+  workInfo.url.projFolder = createNewFolder_proj(paramSheet, workInfo);
+  workInfo.url.projDoc = createProjDoc(paramSheet, workInfo);
+  
 }
 
 function setProjectId(projSheet, workInfo) {
