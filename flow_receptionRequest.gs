@@ -185,7 +185,7 @@ function createNewFolder_proj(paramSheet, workInfo, yearId) {
 function createProjDoc(paramSheet, workInfo, yearId) {
   const fileName = `${CONFIG.NAME_PREFIX.PROJDOC}${yearId}-${workInfo.projId}_${workInfo.projTitle}`;
   const parentFileId = getValueRanges(CONFIG.PARAM_KEYS.PROJ_DOC_ID, paramSheet)[0].offset(0,1).getValue();
-  const file = DriveApp.getFileById(parentFileId).makeCopy(fileName, workInfo.url.projFolder);
+  const file = DriveApp.getFileById(parentFileId).makeCopy(fileName);
   
   return file;
 }
