@@ -158,10 +158,8 @@ function setProjectId(projSheet, workInfo) {
   const projTitles = projSheet.getRange(1, projTitleCol, projSheetRow, 1).getValues().flat();
   const projTitleIndex = projTitles.indexOf(workInfo.projTitle);
   
-  let projId;
   if (projTitleIndex < 0) {
     // 新しい案件の場合
-    projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
     exists = false;
   } else {
     // 既存の案件の場合
@@ -169,7 +167,7 @@ function setProjectId(projSheet, workInfo) {
     exists = true;
   }
   
-  workInfo.projId = projId;
+  workInfo.projId = projSheet.getRange(projSheetRow, projIdCol).getValue();
   return [exists, projSheetRow];
 }
 
@@ -227,8 +225,9 @@ function createNewFolder_work(paramSheet, workInfo, yearId) {
   // 案件フォルダにショートカットを作成
   const projFolderId = extractFileId(workInfo.url.projFolder);
   if (projFolderId) {
-    const folderName_shortcut =`${workInfo.workId}_${workInfo.workTitle}`;
-    folders.workFolder.createShortcut(projFolderId).setName(folderName_shortcut);
+    const projFolder = DriveApp.getFolderById(projFolderId);
+    const folderName_shortcut = `${workInfo.workId}_${workInfo.workTitle}`;
+    projFolder.createShortcut(folders.workFolder.getId()).setName(folderName_shortcut);
   }
 
   return folders;
